@@ -25,6 +25,7 @@ import pyspiel
 EXPECTED_GAMES = frozenset([
     "2048",
     "add_noise",
+    "agnes_sorel",
     "amazons",
     "backgammon",
     "bargaining",
