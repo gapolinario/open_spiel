@@ -22,7 +22,7 @@ namespace open_spiel::agnes_sorel {
 
 namespace {
 const GameType kGameType{/*short_name=*/"agnes_sorel",
-                         /*long_name=*/"Agnes Sorel",
+                         /*long_name=*/"Agnes Sorel Patience",
                          GameType::Dynamics::kSequential,
                          GameType::ChanceMode::kExplicitStochastic,
                          GameType::Information::kImperfectInformation,
