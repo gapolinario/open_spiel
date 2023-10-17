@@ -542,6 +542,7 @@ std::vector<Card> Pile::Sources() const {
         int i = 0;
         for (const auto& card : cards_) {
           if (!card.GetHidden()) {
+            // this defines turn1 or turn3 rule ?
             if (i % 3 == 0) {
               sources.push_back(card);
             }
@@ -735,6 +736,7 @@ std::vector<Card> Waste::Sources() const {
     for (const auto& card : cards_) {
       if (!card.GetHidden()) {
         // Every 3rd card in the waste can be moved
+        // this defines turn1 or turn3 rule ?
         if (i % 3 == 0) {
           sources.push_back(card);
         }
@@ -957,8 +959,6 @@ AgnesSorelState::AgnesSorelState(std::shared_ptr<const Game> game)
 
   // Create tableaus_
   for (int i = 1; i <= 7; i++) {
-    // Create `i` open_ cards_
-    // TODO: what is the opposite of hidden_? i'm using open_ here
     std::vector<Card> cards_to_add;
     for (int j = 1; j <= i; j++) {
       cards_to_add.emplace_back(true, SuitType::kHidden, RankType::kHidden,
@@ -1000,8 +1000,13 @@ bool AgnesSorelState::IsTerminal() const { return is_finished_; }
 
 bool AgnesSorelState::IsChanceNode() const {
   for (const auto& tableau : tableaus_) {
-    if (!tableau.GetIsEmpty() && tableau.GetLastCard().GetHidden()) {
-      return true;
+    //if (!tableau.GetIsEmpty() && tableau.GetLastCard().GetHidden()) {
+    if (!tableau.GetIsEmpty() ) {
+      for (const auto& card : tableau.GetCards() ) {
+        if (card.GetHidden()) {
+          return true;
+        }
+      }
     }
   }
 
@@ -1436,6 +1441,7 @@ void AgnesSorelState::MoveCards(const Move& move) {
   }
 
   // Reward for revealing a hidden_ card
+  // TODO: remove this. or maybe not, if cards from the hidden pile also count to the goal
   if (source_pile->GetType() == LocationType::kTableau &&
       !source_pile->GetIsEmpty() && source_pile->GetLastCard().GetHidden()) {
     move_reward += 20.0;
@@ -1488,8 +1494,22 @@ int AgnesSorelGame::NumDistinctActions() const {
   /* 52 Reveal Moves (one for each ordinary card)
    * 52 Foundation Moves (one for every ordinary card)
    * 96 Tableau Moves (two for every ordinary card except aces)
+   * except aces or except kings??
+   * 4h can be moved on top of 5h or 5d
+   * Kings cannot be moved on top of any other card ... ?
    *  4 King to Empty Tableau (one for every king)
+   * AgnesSorel: any card can be moved to Empty Tableau
    *  1 End Game Move */
+
+  // the same thing, for Agnes Sorel
+  /* 52 Reveal Moves (one for each ordinary card)
+   * 52 Foundation Moves (one for every ordinary card)
+   * 104 Tableau Moves (two for every ordinary card)
+   * e.g. 4h can be moved on top of 5h or 5d
+   * 52 Card to Empty Tableau moves
+   * 52 Card to End of Tableau moves (when dealing new row)
+   *  1 End Game Move
+   * First estimate: 313 */
   return 205;
 }
 
@@ -1509,27 +1529,32 @@ double AgnesSorelGame::MinUtility() const {
 double AgnesSorelGame::MaxUtility() const {
   /* Waste (24 * 20 = 480)
      24 cards are in the waste initially. 20 points are rewarded for every one
-     that is moved from the waste. Tableau (21 * 20 = 420) 21 cards are
-     hidden_ in the tableaus_ initially. 20 points are rewarded for every one
-     that is revealed. Foundation (4 * (100 + 90 + 80 + 70 + 60 + 50 + 40 + 30 +
-     20 + 10
-     + 10 + 10 + 10) = 4 * 580 = 2,320) 0 cards are in the foundations
+     that is moved from the waste.
+     Tableau (21 * 0 = 0)
+     all cards are revealed in the tableaus_ from the start.
+     Foundation (4 * (100 + 90 + 80 + 70 + 60 + 50 + 40 + 30 + 20 + 10
+     + 10 + 10 + 10) - 100 = 4 * 580 - 100 = 2,220)
+     1 card is in the foundations
      initially. A varying number of points, based on the cards rank, are
      awarded when the card is moved to the foundation. Each complete suit in
      the foundation is worth 580 points. `kFoundationPoints` in `agnes_sorel.h`
-     outlines how much each rank is worth. */
-  return 3220.0;
+     outlines how much each rank is worth.
+     Max Utility = 480 + 2,220 = 2,700 */
+  return 2700.0;
 }
 
 std::vector<int> AgnesSorelGame::ObservationTensorShape() const {
-  /* Waste (24 * 53 = 1,272)
-       24 locations and each location_ is a 53 element vector (52 normal cards
-    + 1 hidden) Tableau (7 * 59 = 413) Each tableau is represented as a 59
-    element vector (6 hidden_ cards + 1 empty tableau + 52 normal cards_)
-    Foundation (4 * 14 = 56) Each foundation is represented as a 14 element
-    vector (13 ranks + 1 empty foundation) Total Length = 1,272 + 413 + 56 =
-    1,741 */
-  return {1741};
+  /* Waste (23 * 53 = 1,219)
+     23 locations and each location_ is a 53 element vector (52 normal cards
+     + 1 hidden)
+     Tableau (7 * 53 = 371)
+     Each tableau is represented as a 53 element vector
+     (1 empty tableau + 52 normal cards_)
+     Foundation (4 * 14 = 56)
+     Each foundation is represented as a 14 element vector
+     (13 ranks + 1 empty foundation)
+     Total Length = 1,219 + 371 + 56 = 1,646 */
+  return {1646};
 }
 
 std::unique_ptr<State> AgnesSorelGame::NewInitialState() const {
