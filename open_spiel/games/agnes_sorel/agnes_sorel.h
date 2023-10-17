@@ -27,14 +27,7 @@
 
 // An implementation of agnes sorel:
 // https://en.wikipedia.org/wiki/Agnes_(card_game)
-//
-// More specifically, it is
-// K+ solitaire, which allows the player to play any card from the deck/waste
-// that would normally become playable after some number of draws in standard
-// klondike solitaire. For a more in-depth description of K+ solitaire, see
-// http://web.engr.oregonstate.edu/~afern/papers/solitaire.pdf. This
-// implementation also gives rewards at intermediate states like most electronic
-// versions of solitaire do, rather than only at terminal states.
+// As described by David Parlett (1979)
 
 namespace open_spiel::agnes_sorel {
 
