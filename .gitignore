@@ -60,3 +60,6 @@ Package.resolved
 # Visual Studio generated files
 open_spiel/.vs
 /.env
+
+# My files
+playthrough_test.txt
