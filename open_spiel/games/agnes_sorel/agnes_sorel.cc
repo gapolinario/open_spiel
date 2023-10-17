@@ -1021,13 +1021,14 @@ bool AgnesSorelState::IsChanceNode() const {
     }
   }
 
-  if (!waste_.GetIsEmpty()) {
+  // solitaire only, do not reveal cards in waste
+  /*if (!waste_.GetIsEmpty()) {
     for (const auto& card : waste_.GetCards()) {
       if (card.GetHidden()) {
         return true;
       }
     }
-  }
+  }*/
 
   return false;
 }
@@ -1179,10 +1180,11 @@ void AgnesSorelState::DoApplyAction(Action action) {
         break;
       }
     }
-    if (!found_card && !waste_.GetIsEmpty()) {
+    // solitaire only, do not reveal cards from waste
+    /* if (!found_card && !waste_.GetIsEmpty()) {
       waste_.Reveal(revealed_card);
       card_map_.insert_or_assign(revealed_card, waste_.GetID());
-    }
+    } */
     revealed_cards_.push_back(action);
   } else if (action >= kMoveStart && action <= kMoveEnd) {
     Move selected_move = Move(action);
