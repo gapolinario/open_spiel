@@ -684,9 +684,14 @@ std::vector<Card> Tableau::Split(Card card) {
 }
 
 void Tableau::Reveal(Card card_to_reveal) {
-  cards_.back().SetRank(card_to_reveal.GetRank());
-  cards_.back().SetSuit(card_to_reveal.GetSuit());
-  cards_.back().SetHidden(false);
+  for (auto& card : cards_) {
+    if (card.GetHidden()) {
+      card.SetRank(card_to_reveal.GetRank());
+      card.SetSuit(card_to_reveal.GetSuit());
+      card.SetHidden(false);
+      break;
+    }
+  }
 }
 
 // Foundation Methods ==========================================================
@@ -999,8 +1004,14 @@ std::unique_ptr<State> AgnesSorelState::Clone() const {
 bool AgnesSorelState::IsTerminal() const { return is_finished_; }
 
 bool AgnesSorelState::IsChanceNode() const {
+  // for solitaire
+  /*for (const auto& tableau : tableaus_) {
+    if (!tableau.GetIsEmpty() && tableau.GetLastCard().GetHidden()) {
+        return true;
+    }
+  } */
+  // for agnes sorel
   for (const auto& tableau : tableaus_) {
-    //if (!tableau.GetIsEmpty() && tableau.GetLastCard().GetHidden()) {
     if (!tableau.GetIsEmpty() ) {
       for (const auto& card : tableau.GetCards() ) {
         if (card.GetHidden()) {
@@ -1142,10 +1153,29 @@ void AgnesSorelState::DoApplyAction(Action action) {
     bool found_card = false;
 
     for (auto& tableau : tableaus_) {
-      if (!tableau.GetIsEmpty() && tableau.GetLastCard().GetHidden()) {
+      // solitaire
+      /*if (!tableau.GetIsEmpty() && tableau.GetLastCard().GetHidden()) {
         tableau.Reveal(revealed_card);
         card_map_.insert_or_assign(tableau.GetLastCard(), tableau.GetID());
         found_card = true;
+        break;
+      }*/
+      // agnes sorel
+      if (!tableau.GetIsEmpty()) {
+        for (auto& card : tableau.GetCards()) {
+        //for (std::vector<Card>::reverse_iterator rit = tableau.rbegin();
+             //rit != tableau.rend(); ++rit, --index) {
+          if (card.GetHidden()) {
+            tableau.Reveal(revealed_card);
+            // what does this line do?
+            card_map_.insert_or_assign(card, tableau.GetID());
+            found_card = true;
+            break;
+          }
+        }
+      }
+      // maybe I also need a !tableau.GetIsEmpty() here
+      if (found_card) {
         break;
       }
     }
@@ -1540,7 +1570,8 @@ double AgnesSorelGame::MaxUtility() const {
      the foundation is worth 580 points. `kFoundationPoints` in `agnes_sorel.h`
      outlines how much each rank is worth.
      Max Utility = 480 + 2,220 = 2,700 */
-  return 2700.0;
+  //return 2700.0;
+  return 3220.0;
 }
 
 std::vector<int> AgnesSorelGame::ObservationTensorShape() const {
@@ -1554,7 +1585,8 @@ std::vector<int> AgnesSorelGame::ObservationTensorShape() const {
      Each foundation is represented as a 14 element vector
      (13 ranks + 1 empty foundation)
      Total Length = 1,219 + 371 + 56 = 1,646 */
-  return {1646};
+  //return {1646};
+  return {1741};
 }
 
 std::unique_ptr<State> AgnesSorelGame::NewInitialState() const {
