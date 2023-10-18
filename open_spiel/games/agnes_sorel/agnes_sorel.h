@@ -259,6 +259,7 @@ class AgnesSorelState : public State {
   // Overridden Methods
   Player CurrentPlayer() const override;
   std::unique_ptr<State> Clone() const override;
+  bool IsKnownFoundation() const;
   bool IsTerminal() const override;
   bool IsChanceNode() const override;
   std::string ToString() const override;
@@ -291,8 +292,11 @@ class AgnesSorelState : public State {
   std::vector<Action> revealed_cards_;
 
   bool is_finished_ = false;
+  bool is_known_foundation_ = false;
   bool is_reversible_ = false;
   int current_depth_ = 0;
+
+  RankType foundation_rank_ = RankType::kNone;
 
   std::set<std::size_t> previous_states_ = {};
   std::map<Card, PileID> card_map_;

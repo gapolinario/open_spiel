@@ -417,6 +417,7 @@ std::vector<Card> Card::LegalChildren() const {
       case LocationType::kFoundation: {
         if (rank_ == RankType::kNone) {
           if (suit_ != SuitType::kNone) {
+            // here, should accept only foundation_rank
             child_rank = static_cast<RankType>(static_cast<int>(rank_) + 1);
             child_suits = {suit_};
           } else {
@@ -1034,16 +1035,11 @@ std::unique_ptr<State> AgnesSorelState::Clone() const {
   return std::unique_ptr<State>(new AgnesSorelState(*this));
 }
 
+bool AgnesSorelState::IsKnownFoundation() const { return is_known_foundation_; }
+
 bool AgnesSorelState::IsTerminal() const { return is_finished_; }
 
 bool AgnesSorelState::IsChanceNode() const {
-  // for solitaire
-  /*for (const auto& tableau : tableaus_) {
-    if (!tableau.GetIsEmpty() && tableau.GetLastCard().GetHidden()) {
-        return true;
-    }
-  } */
-  // for agnes sorel
   for (const auto& tableau : tableaus_) {
     if (!tableau.GetIsEmpty() ) {
       for (const auto& card : tableau.GetCards() ) {
@@ -1053,16 +1049,9 @@ bool AgnesSorelState::IsChanceNode() const {
       }
     }
   }
-
-  // solitaire only, do not reveal cards in waste
-  /*if (!waste_.GetIsEmpty()) {
-    for (const auto& card : waste_.GetCards()) {
-      if (card.GetHidden()) {
-        return true;
-      }
-    }
-  }*/
-
+  if (!is_known_foundation_) {
+    return true;
+  }
   return false;
 }
 
@@ -1187,7 +1176,6 @@ void AgnesSorelState::DoApplyAction(Action action) {
     bool found_card = false;
 
     for (auto& tableau : tableaus_) {
-      // agnes sorel
       if (!tableau.GetIsEmpty()) {
         for (auto& card : tableau.GetCards()) {
           if (card.GetHidden()) {
@@ -1199,10 +1187,14 @@ void AgnesSorelState::DoApplyAction(Action action) {
           }
         }
       }
-      // maybe I also need a !tableau.GetIsEmpty() here
       if (found_card) {
         break;
       }
+    }
+    if (!is_known_foundation_ && !found_card) {
+      // add 29th card to foundation
+      foundation_rank_ = revealed_card.GetRank();
+      is_known_foundation_ = true;
     }
     revealed_cards_.push_back(action);
   } else if (action >= kMoveStart && action <= kMoveEnd) {
