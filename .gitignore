@@ -63,3 +63,4 @@ open_spiel/.vs
 
 # My files
 playthrough_test.txt
+playthrough_test_*.txt
