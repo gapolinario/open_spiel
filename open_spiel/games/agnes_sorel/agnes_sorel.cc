@@ -384,6 +384,9 @@ std::vector<Card> Card::LegalChildren() const {
 
     // A card can have a maximum of 4 children
     // (specifically, an empty tableau card can accept a king of any suit)
+    // Agnes Sorel:
+    // An empty tableau accepts any card (maximum of 52 children)
+    // And any card accepts two other cards
     child_suits.reserve(4);
 
     switch (location_) {
@@ -672,10 +675,10 @@ std::vector<Card> Tableau::Sources() const {
       if (card.GetHidden()) {
         break;
       }
+      int distance_up = GetRankDistanceUp(prev_card.GetRank(),card.GetRank());
       if (card == *cards_.rbegin()) {
         sources.push_back(card);
-      } else if ( GetRankDistanceUp(prev_card.GetRank(),card.GetRank()) == 1 ||
-      GetRankDistanceUp(prev_card.GetRank(),card.GetRank()) == 12 ) {
+      } else if ( (distance_up == 1 || distance_up  == 12) ) {
         // check if cards are same color and if they are in increasing order
         // does GetRank return an integer?
         // if (!card.GetHidden() && (card.GetRank() - prev_card.GetRank() == 1) &&  ) {
