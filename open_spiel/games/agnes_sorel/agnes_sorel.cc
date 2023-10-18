@@ -681,24 +681,16 @@ std::vector<Card> Tableau::Sources() const {
       int distance_up = GetRankDistanceUp(prev_card.GetRank(),card.GetRank());
       if (card == *cards_.rbegin()) {
         sources.push_back(card);
-      } else if ( (distance_up == 1 || distance_up  == 12) ) {
-        // check if cards are same color and if they are in increasing order
-        // does GetRank return an integer?
-        // if (!card.GetHidden() && (card.GetRank() - prev_card.GetRank() == 1) &&  ) {
-        sources.push_back(card);
-        prev_card = card;
       } else {
-        break;
+        auto children = card.LegalChildren();
+        if (std::find(children.begin(), children.end(), prev_card) != children.end()) {
+          sources.push_back(card);
+          prev_card = card;
+        } else {
+          break;
+        }
       }
     }
-    /*
-    for (const auto& card : cards_) {
-      // change this condition. can be moved if its last card in this tableau
-      // or if all its subsequent cards form a decreasing sequence
-      if (!card.GetHidden()) {
-        sources.push_back(card);
-      }
-    }*/
     return sources;
   } else {
     return {};
