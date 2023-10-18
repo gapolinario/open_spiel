@@ -653,17 +653,22 @@ std::vector<Card> Tableau::Sources() const {
   std::vector<Card> sources;
   sources.reserve(kMaxSourcesTableau);
   if (!cards_.empty()) {
-    auto prev_card = cards_.back();
-    sources.push_back(prev_card);
     // move up the Pile until cards break the increasing sequence
     // suggestion of chatgpt for iteration in reverse order
     for (auto it = cards_.rbegin(); it != cards_.rend(); ++it) {
       const auto& card = *it;
-      // check if cards are same color and if they are in increasing order
-      // does GetRank return an integer?
-      if (!card.GetHidden() && (card.GetRank() - prev_card.GetRank() == 1) &&  ) {
-          sources.push_back(card);
-          prev_card = card;
+      auto prev_card = *cards_.rbegin();
+      if (card.GetHidden()) {
+        break;
+      }
+      if (card == *cards_.rbegin()) {
+        sources.push_back(card);
+      } else {
+        // check if cards are same color and if they are in increasing order
+        // does GetRank return an integer?
+        // if (!card.GetHidden() && (card.GetRank() - prev_card.GetRank() == 1) &&  ) {
+        sources.push_back(card);
+        prev_card = card;
       }
     }
     /*
