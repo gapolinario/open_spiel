@@ -254,6 +254,19 @@ int GetMaxSize(LocationType location) {
 
 std::hash<std::string> hasher;
 
+int GetRankDistanceUp(RankType a, RankType b) {
+  if (a != RankType::kHidden && a != RankType::kNone && b != RankType::kHidden &&
+      b != RankType::kNone) {
+    using IntType = typename std::underlying_type<RankType>::type;
+    auto ai = static_cast<IntType>(a);
+    auto bi = static_cast<IntType>(b);
+    // There are 13 cards_ in a suit_
+    return ((bi - ai) % 13);
+  } else {
+    return 14;
+  }
+}
+
 // Card Methods ================================================================
 
 Card::Card(bool hidden, SuitType suit, RankType rank, LocationType location)
@@ -653,8 +666,6 @@ std::vector<Card> Tableau::Sources() const {
   std::vector<Card> sources;
   sources.reserve(kMaxSourcesTableau);
   if (!cards_.empty()) {
-    // move up the Pile until cards break the increasing sequence
-    // suggestion of chatgpt for iteration in reverse order
     for (auto it = cards_.rbegin(); it != cards_.rend(); ++it) {
       const auto& card = *it;
       auto prev_card = *cards_.rbegin();
@@ -663,12 +674,14 @@ std::vector<Card> Tableau::Sources() const {
       }
       if (card == *cards_.rbegin()) {
         sources.push_back(card);
-      } else {
+      } else if ( card.GetRank() - prev_card.GetRank() == 1 ) {
         // check if cards are same color and if they are in increasing order
         // does GetRank return an integer?
         // if (!card.GetHidden() && (card.GetRank() - prev_card.GetRank() == 1) &&  ) {
         sources.push_back(card);
         prev_card = card;
+      } else {
+        break;
       }
     }
     /*
