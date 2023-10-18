@@ -653,7 +653,15 @@ std::vector<Card> Tableau::Sources() const {
   std::vector<Card> sources;
   sources.reserve(kMaxSourcesTableau);
   if (!cards_.empty()) {
+    // start from last card, add it to sources.
+    // move up the Pile until cards break the increasing sequence
     for (const auto& card : cards_) {
+      if (card == GetLastCard()) {
+        sources.push_back(card);
+        break;
+      }
+      // change this condition. can be moved if its last card in this tableau
+      // or if all its subsequent cards form a decreasing sequence
       if (!card.GetHidden()) {
         sources.push_back(card);
       }
@@ -1154,18 +1162,9 @@ void AgnesSorelState::DoApplyAction(Action action) {
     bool found_card = false;
 
     for (auto& tableau : tableaus_) {
-      // solitaire
-      /*if (!tableau.GetIsEmpty() && tableau.GetLastCard().GetHidden()) {
-        tableau.Reveal(revealed_card);
-        card_map_.insert_or_assign(tableau.GetLastCard(), tableau.GetID());
-        found_card = true;
-        break;
-      }*/
       // agnes sorel
       if (!tableau.GetIsEmpty()) {
         for (auto& card : tableau.GetCards()) {
-        //for (std::vector<Card>::reverse_iterator rit = tableau.rbegin();
-             //rit != tableau.rend(); ++rit, --index) {
           if (card.GetHidden()) {
             tableau.Reveal(revealed_card);
             // what does this line do?
@@ -1180,11 +1179,6 @@ void AgnesSorelState::DoApplyAction(Action action) {
         break;
       }
     }
-    // solitaire only, do not reveal cards from waste
-    /* if (!found_card && !waste_.GetIsEmpty()) {
-      waste_.Reveal(revealed_card);
-      card_map_.insert_or_assign(revealed_card, waste_.GetID());
-    } */
     revealed_cards_.push_back(action);
   } else if (action >= kMoveStart && action <= kMoveEnd) {
     Move selected_move = Move(action);
@@ -1326,11 +1320,12 @@ std::vector<Card> AgnesSorelState::Sources(
     }
   }
 
-  if (loc == LocationType::kWaste || loc == LocationType::kMissing) {
+  /* solitaire only, no waste in agnes sorel */
+  /*if (loc == LocationType::kWaste || loc == LocationType::kMissing) {
     std::vector<Card> current_sources = waste_.Sources();
     sources.insert(sources.end(), current_sources.begin(),
                    current_sources.end());
-  }
+  }*/
 
   return sources;
 }
