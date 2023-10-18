@@ -382,11 +382,8 @@ std::vector<Card> Card::LegalChildren() const {
     RankType child_rank;
     std::vector<SuitType> child_suits;
 
-    // A card can have a maximum of 4 children
-    // (specifically, an empty tableau card can accept a king of any suit)
-    // Agnes Sorel:
     // An empty tableau accepts any card (maximum of 52 children)
-    // And any card accepts two other cards
+    // And any card accepts two cards of rank one less
     child_suits.reserve(4);
 
     switch (location_) {
@@ -394,20 +391,25 @@ std::vector<Card> Card::LegalChildren() const {
         if (rank_ == RankType::kNone) {
           if (suit_ == SuitType::kNone) {
             // Empty tableaus can accept a king of any suit
+            // TODO: Change this to accept any rank
             child_rank = RankType::kK;
             child_suits = kSuits;
             break;
           } else {
             return {};
           }
-        } else if (rank_ >= RankType::k2 && rank_ <= RankType::kK) {
-          // Ordinary cards (except aces) can accept cards of an opposite
-          // suit that is one rank lower
-          child_rank = static_cast<RankType>(static_cast<int>(rank_) - 1);
+        } else if (rank_ >= RankType::kA && rank_ <= RankType::kK) {
+          // Cards can accept cards of a same color suit that is one 
+          // rank lower. Aces accepts Ks (Turn the corner)
+          int int_child_rank = (static_cast<int>(rank_) + 12) % 13;
+          if (int_child_rank == 0) {
+            int_child_rank = 13;
+          }
+          child_rank = static_cast<RankType>(int_child_rank);
           child_suits = GetSameColorSuits(suit_);
           break;
         } else {
-          // This will catch RankType::kA and RankType::kHidden
+          // This will catch RankType::kHidden
           return {};
         }
         break;
@@ -421,8 +423,9 @@ std::vector<Card> Card::LegalChildren() const {
             return {};
           }
         } else if (rank_ >= RankType::kA && rank_ <= RankType::kQ) {
-          // Cards (except kings) can accept a card of the same suit that is
-          // one rank higher
+          // Cards (except card one rank lower than foundation card)
+          // can accept a card of the same suit that is one rank higher
+          // (turning the corner)
           child_rank = static_cast<RankType>(static_cast<int>(rank_) + 1);
           child_suits = {suit_};
         } else {
