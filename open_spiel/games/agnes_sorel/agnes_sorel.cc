@@ -164,7 +164,7 @@ const std::map<int, PileID> kIntToPile = {
 
 // Miscellaneous ===============================================================
 
-std::vector<SuitType> GetSameSuits(const SuitType& suit) {
+std::vector<SuitType> GetSameColorSuits(const SuitType& suit) {
   /* Just returns a vector of the suits of same color. For red suits
    * (SuitType::kHearts and SuitType::kDiamonds), this returns a vector of
    * the red suits. Equivalently for the black suits (SuitType::kSpades and
@@ -401,7 +401,7 @@ std::vector<Card> Card::LegalChildren() const {
           // Ordinary cards (except aces) can accept cards of an opposite
           // suit that is one rank lower
           child_rank = static_cast<RankType>(static_cast<int>(rank_) - 1);
-          child_suits = GetSameSuits(suit_);
+          child_suits = GetSameColorSuits(suit_);
           break;
         } else {
           // This will catch RankType::kA and RankType::kHidden
@@ -842,7 +842,7 @@ Move::Move(Action action) {
   int target_suit;
   int source_suit;
 
-  std::vector<SuitType> opposite_suits;
+  std::vector<SuitType> same_color_suits;
   action -= kActionOffset;
 
   // The numbers used in the cases below are just used to divide action ids into
@@ -858,9 +858,9 @@ Move::Move(Action action) {
       source_rank = target_rank + 1;
       source_suit = target_suit;
     } else {
-      opposite_suits = GetSameSuits(static_cast<SuitType>(target_suit));
+      same_color_suits = GetSameColorSuits(static_cast<SuitType>(target_suit));
       source_rank = target_rank - 1;
-      source_suit = static_cast<int>(opposite_suits[residual - 1]);
+      source_suit = static_cast<int>(same_color_suits[residual - 1]);
     }
   } else if (action >= 133 && action <= 136) {
     // Handles ace to empty foundation moves
@@ -886,10 +886,10 @@ Move::Move(Action action) {
     target_suit = (action - 143) / 2;
 
     residual = (action - 143) % 2;
-    opposite_suits = GetSameSuits(static_cast<SuitType>(target_suit));
+    same_color_suits = GetSameColorSuits(static_cast<SuitType>(target_suit));
 
     source_rank = 12;
-    source_suit = static_cast<int>(opposite_suits[residual]);
+    source_suit = static_cast<int>(same_color_suits[residual]);
   } else {
     SpielFatalError("action provided does not correspond with a move");
   }
