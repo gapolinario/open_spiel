@@ -164,28 +164,28 @@ const std::map<int, PileID> kIntToPile = {
 
 // Miscellaneous ===============================================================
 
-std::vector<SuitType> GetOppositeSuits(const SuitType& suit) {
-  /* Just returns a vector of the suits of opposite color. For red suits
-   * (SuitType::kHearts and SuitType::kDiamonds), this returns the black suits
-   * (SuitType::kSpades and SuitType::kClubs). For a black suit_, this returns
-   * the red suits. The last `SuitType` would be `SuitType::kNone` which should
-   * only occur with empty tableau cards or hidden cards. Empty tableau
+std::vector<SuitType> GetSameSuits(const SuitType& suit) {
+  /* Just returns a vector of the suits of same color. For red suits
+   * (SuitType::kHearts and SuitType::kDiamonds), this returns a vector of
+   * the red suits. Equivalently for the black suits (SuitType::kSpades and
+   * SuitType::kClubs). The last `SuitType` would be `SuitType::kNone` which
+   * should only occur with empty tableau cards or hidden cards. Empty tableau
    * cards should accept any suit, but hidden cards are the opposite; they
    * shouldn't accept any. There isn't really a use case for calling this
    * function with the suit of a hidden card though. */
 
   switch (suit) {
     case SuitType::kSpades: {
-      return {SuitType::kHearts, SuitType::kDiamonds};
+      return {SuitType::kSpades, SuitType::kClubs};
     }
     case SuitType::kHearts: {
-      return {SuitType::kSpades, SuitType::kClubs};
-    }
-    case SuitType::kClubs: {
       return {SuitType::kHearts, SuitType::kDiamonds};
     }
-    case SuitType::kDiamonds: {
+    case SuitType::kClubs: {
       return {SuitType::kSpades, SuitType::kClubs};
+    }
+    case SuitType::kDiamonds: {
+      return {SuitType::kHearts, SuitType::kDiamonds};
     }
     case SuitType::kNone: {
       return {SuitType::kSpades, SuitType::kHearts, SuitType::kClubs,
@@ -401,7 +401,7 @@ std::vector<Card> Card::LegalChildren() const {
           // Ordinary cards (except aces) can accept cards of an opposite
           // suit that is one rank lower
           child_rank = static_cast<RankType>(static_cast<int>(rank_) - 1);
-          child_suits = GetOppositeSuits(suit_);
+          child_suits = GetSameSuits(suit_);
           break;
         } else {
           // This will catch RankType::kA and RankType::kHidden
@@ -858,7 +858,7 @@ Move::Move(Action action) {
       source_rank = target_rank + 1;
       source_suit = target_suit;
     } else {
-      opposite_suits = GetOppositeSuits(static_cast<SuitType>(target_suit));
+      opposite_suits = GetSameSuits(static_cast<SuitType>(target_suit));
       source_rank = target_rank - 1;
       source_suit = static_cast<int>(opposite_suits[residual - 1]);
     }
@@ -886,7 +886,7 @@ Move::Move(Action action) {
     target_suit = (action - 143) / 2;
 
     residual = (action - 143) % 2;
-    opposite_suits = GetOppositeSuits(static_cast<SuitType>(target_suit));
+    opposite_suits = GetSameSuits(static_cast<SuitType>(target_suit));
 
     source_rank = 12;
     source_suit = static_cast<int>(opposite_suits[residual]);
