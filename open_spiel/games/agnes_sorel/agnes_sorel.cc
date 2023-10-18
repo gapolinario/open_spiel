@@ -674,7 +674,8 @@ std::vector<Card> Tableau::Sources() const {
       }
       if (card == *cards_.rbegin()) {
         sources.push_back(card);
-      } else if ( card.GetRank() - prev_card.GetRank() == 1 ) {
+      } else if ( GetRankDistanceUp(prev_card.GetRank(),card.GetRank()) == 1 ||
+      GetRankDistanceUp(prev_card.GetRank(),card.GetRank()) == 12 ) {
         // check if cards are same color and if they are in increasing order
         // does GetRank return an integer?
         // if (!card.GetHidden() && (card.GetRank() - prev_card.GetRank() == 1) &&  ) {
