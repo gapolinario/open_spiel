@@ -1242,7 +1242,6 @@ void AgnesSorelState::DoApplyAction(Action action) {
         for (auto& card : tableau.GetCards()) {
           if (card.GetHidden()) {
             tableau.Reveal(revealed_card);
-            // what does this line do?
             card_map_.insert_or_assign(card, tableau.GetID());
             found_card = true;
             break;
@@ -1257,7 +1256,13 @@ void AgnesSorelState::DoApplyAction(Action action) {
       // add 29th card to foundation
       foundation_rank_     = revealed_card.GetRank();
       is_known_foundation_ = true;
-      card_map_.insert_or_assign(revealed_card, kSuitToPile.at(revealed_card.GetSuit()));
+      auto pile_id = kSuitToPile.at(revealed_card.GetSuit());
+      for (auto& foundation : foundations_) {
+        if (foundation.GetSuit() == revealed_card.GetSuit()) {
+          foundation.Extend({revealed_card});
+        }
+      }
+      card_map_.insert_or_assign(revealed_card, pile_id);
     }
     revealed_cards_.push_back(action);
   } else if (action >= kMoveStart && action <= kMoveEnd) {
@@ -1615,8 +1620,9 @@ int AgnesSorelGame::NumDistinctActions() const {
    * e.g. 4h can be moved on top of 5h or 5d
    * 52 Card to Empty Tableau moves
    * 52 Card to End of Tableau moves (when dealing new row)
-   *  1 End Game Move
-   * First estimate: 313 */
+   *  1 Deal new row move
+   *  1 End Game move
+   * First estimate: 314 */
   return 205;
 }
 
