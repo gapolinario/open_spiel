@@ -124,6 +124,13 @@ inline constexpr int kActionOffset = 52;
 const std::vector<SuitType> kSuits = {SuitType::kSpades, SuitType::kHearts,
                                       SuitType::kClubs, SuitType::kDiamonds};
 
+// Vector with all valid ranks
+const std::vector<RankType> kRanks = {RankType::kA, RankType::k2, RankType::k3,
+                                      RankType::k4, RankType::k5, RankType::k6,
+                                      RankType::k7, RankType::k8, RankType::k9,
+                                      RankType::kT, RankType::kJ, RankType::kQ,
+                                      RankType::kK};
+
 // These correspond with their enums, not with the two vectors directly above
 const std::vector<std::string> kSuitStrs = {
     "", kGlyphSpades, kGlyphHearts, kGlyphClubs, kGlyphDiamonds, ""};
@@ -379,33 +386,34 @@ std::vector<Card> Card::LegalChildren() const {
   if (hidden_) {
     return {};
   } else {
-    RankType child_rank;
+    std::vector<RankType> child_ranks;
     std::vector<SuitType> child_suits;
 
     // An empty tableau accepts any card (maximum of 52 children)
     // And any card accepts two cards of rank one less
     child_suits.reserve(4);
+    child_ranks.reserve(13);
 
     switch (location_) {
       case LocationType::kTableau: {
         if (rank_ == RankType::kNone) {
           if (suit_ == SuitType::kNone) {
-            // Empty tableaus can accept a king of any suit
-            // TODO: Change this to accept any rank
-            child_rank = RankType::kK;
+            // Empty tableaus can accept any card
+            child_ranks = kRanks;
             child_suits = kSuits;
             break;
           } else {
             return {};
           }
-        } else if (rank_ >= RankType::kA && rank_ <= RankType::kK) {
+        } else if (rank_ >= RankType::k2 && rank_ <= RankType::kK) {
           // Cards can accept cards of a same color suit that is one 
-          // rank lower. Aces accepts Ks (Turn the corner)
-          int int_child_rank = (static_cast<int>(rank_) + 12) % 13;
-          if (int_child_rank == 0) {
-            int_child_rank = 13;
-          }
-          child_rank = static_cast<RankType>(int_child_rank);
+          // rank lower
+          child_ranks.push_back(static_cast<RankType>(static_cast<int>(rank_) - 1));
+          child_suits = GetSameColorSuits(suit_);
+          break;
+        } else if (rank_ == RankType::kA) {
+          // Aces accepts Ks of a same color suit (Turn the corner)
+          child_ranks.push_back(RankType::kQ);
           child_suits = GetSameColorSuits(suit_);
           break;
         } else {
@@ -415,25 +423,8 @@ std::vector<Card> Card::LegalChildren() const {
         break;
       }
       case LocationType::kFoundation: {
-        if (rank_ == RankType::kNone && foundation_rank != RankType::kNone) {
-          if (suit_ != SuitType::kNone) {
-            // here, should accept only foundation_rank
-            // child_rank = static_cast<RankType>(static_cast<int>(rank_) + 1); // accept aces
-            child_rank = static_cast<RankType>(static_cast<int>(foundation_rank));
-            child_suits = {suit_};
-          } else {
-            return {};
-          }
-        } else if (rank_ >= RankType::kA && rank_ <= RankType::kQ) {
-          // Cards (except card one rank lower than foundation card)
-          // can accept a card of the same suit that is one rank higher
-          // (turning the corner)
-          child_rank = static_cast<RankType>(static_cast<int>(rank_) + 1);
-          child_suits = {suit_};
-        } else {
-          // This could catch RankType::kK and RankType::kHidden
-          return {};
-        }
+        // TODO: fix
+        return {};
         break;
       }
       default: {
@@ -443,18 +434,18 @@ std::vector<Card> Card::LegalChildren() const {
       }
     }
 
-
-
     std::vector<Card> legal_children;
-    legal_children.reserve(4);
+    legal_children.reserve(52);
 
     if (child_suits.empty()) {
       SpielFatalError("child_suits should not be empty");
     }
 
     for (const auto& child_suit : child_suits) {
-      auto child = Card(false, child_suit, child_rank);
-      legal_children.push_back(child);
+      for (const auto& child_rank : child_ranks) {
+        auto child = Card(false, child_suit, child_rank);
+        legal_children.push_back(child);
+      }
     }
 
     return legal_children;
@@ -465,46 +456,54 @@ std::vector<Card> Card::LegalChildren(RankType foundation_rank) const {
   if (hidden_) {
     return {};
   } else {
-    RankType child_rank;
-    std::vector<SuitType> child_suits;
-
-    // An empty tableau accepts any card (maximum of 52 children)
-    // And any card accepts two cards of rank one less
-    child_suits.reserve(4);
 
     if (foundation_rank != RankType::kHidden) {
       SpielFatalError("foundation rank should not be hidden");
     }
 
-    if ( location_ == LocationType::kFoundation) {
-      if (foundation_rank == RankType::kNone) {
-        return {};
-      } else if (rank_ == RankType::kNone) {
-        // if there's no card in a foundation, accept cards with rank_ == foundation_rank
-        if (suit_ != SuitType::kNone) {
-          child_rank = foundation_rank;
+    RankType child_rank;
+    std::vector<SuitType> child_suits;
+
+    switch (location_) {
+      case LocationType::kTableau: {
+        // for cards in tableau, ignore foundation_rank if given
+        return LegalChildren();
+      }
+      case LocationType::kFoundation: {
+        if (foundation_rank == RankType::kNone) {
+          return {};
+        } else if (rank_ == RankType::kNone) {
+          // if there's no card in a foundation, accept cards with rank_ == foundation_rank
+          if (suit_ != SuitType::kNone) {
+            child_rank = foundation_rank;
+            child_suits = {suit_};
+          } else {
+            return {};
+          }
+        } else if (rank_ >= RankType::kA && rank_ <= RankType::kQ) {
+          // Accept a card of the same suit that is one rank higher
+          // (turning the corner)
+          child_rank = static_cast<RankType>(static_cast<int>(rank_) + 1);
+          child_suits = {suit_};
+        } else if (rank_ == RankType::kK) {
+          // Accept Ace
+          child_rank = RankType::kA;
           child_suits = {suit_};
         } else {
+          // Should not run
           return {};
         }
-      } else if (rank_ >= RankType::kA && rank_ <= RankType::kQ) {
-        // Accept a card of the same suit that is one rank higher
-        // (turning the corner)
-        child_rank = static_cast<RankType>(static_cast<int>(rank_) + 1);
-        child_suits = {suit_};
-      } else if (rank_ == RankType::kK) {
-        // Accept Ace
-        child_rank = RankType::kA;
-        child_suits = {suit_};
-      } else {
-        // Should not run
+      }
+      default: {
+        // This catches all cards_ that aren't located in a tableau or
+        // foundation
         return {};
       }
-
-    } else {
-      // TODO: return empty or throw an error?
-      SpielFatalError("Arg must only be used for foundation cards");
     }
+
+    // An empty tableau accepts any card (maximum of 52 children)
+    // And any card accepts two cards of rank one less
+    child_suits.reserve(4);
 
     std::vector<Card> legal_children;
     legal_children.reserve(4);
