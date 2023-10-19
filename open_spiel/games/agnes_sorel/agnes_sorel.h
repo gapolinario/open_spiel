@@ -125,6 +125,7 @@ class Card {
   // Other Methods
   std::string ToString(bool colored = true) const;
   std::vector<Card> LegalChildren() const;
+  std::vector<Card> LegalChildren(RankType foundation_rank) const;
 
  private:
   RankType rank_ = RankType::kHidden;  // Indicates the rank of the card
