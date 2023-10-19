@@ -264,9 +264,8 @@ std::hash<std::string> hasher;
 int GetRankDistanceUp(RankType a, RankType b) {
   if (a != RankType::kHidden && a != RankType::kNone && b != RankType::kHidden &&
       b != RankType::kNone) {
-    using IntType = typename std::underlying_type<RankType>::type;
-    auto ai = static_cast<IntType>(a);
-    auto bi = static_cast<IntType>(b);
+    auto ai = static_cast<int>(a);
+    auto bi = static_cast<int>(b);
     // There are 13 cards_ in a suit_
     return ((bi - ai) % 13);
   } else {
@@ -457,7 +456,7 @@ std::vector<Card> Card::LegalChildren(RankType foundation_rank) const {
     return {};
   } else {
 
-    if (foundation_rank != RankType::kHidden) {
+    if (foundation_rank == RankType::kHidden) {
       SpielFatalError("foundation rank should not be hidden");
     }
 
@@ -475,7 +474,7 @@ std::vector<Card> Card::LegalChildren(RankType foundation_rank) const {
         } else if (rank_ == RankType::kNone) {
           // if there's no card in a foundation, accept cards with rank_ == foundation_rank
           if (suit_ != SuitType::kNone) {
-            child_rank = foundation_rank;
+            child_rank  = foundation_rank;
             child_suits = {suit_};
           } else {
             return {};
@@ -1256,8 +1255,9 @@ void AgnesSorelState::DoApplyAction(Action action) {
     }
     if (!is_known_foundation_ && !found_card) {
       // add 29th card to foundation
-      foundation_rank_ = revealed_card.GetRank();
+      foundation_rank_     = revealed_card.GetRank();
       is_known_foundation_ = true;
+      card_map_.insert_or_assign(revealed_card, kSuitToPile.at(revealed_card.GetSuit()));
     }
     revealed_cards_.push_back(action);
   } else if (action >= kMoveStart && action <= kMoveEnd) {
@@ -1493,7 +1493,7 @@ std::vector<Move> AgnesSorelState::CandidateMoves() const {
         found_empty_tableau = true;
       }
     }
-    for (auto& source : target.LegalChildren()) {
+    for (auto& source : target.LegalChildren(foundation_rank_)) {
       if (std::find(sources.begin(), sources.end(), source) != sources.end()) {
         auto* source_pile = GetPile(source);
         if (target.GetLocation() == LocationType::kFoundation &&
