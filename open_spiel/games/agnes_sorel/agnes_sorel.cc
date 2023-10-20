@@ -88,7 +88,11 @@ inline constexpr int kRevealEnd = 52;
 // a card to another cards_ location_. It starts at 53 because there are 52
 // reveal actions before it. See `NumDistinctActions()` in agnes_sorel.cc.
 inline constexpr int kMoveStart = 53;
-inline constexpr int kMoveEnd = 204;
+inline constexpr int kMoveEnd = 312;
+
+// A single action that the player may take. This deals hidden cards
+// from the waste to the tableau
+inline constexpr int kDeal = 313;
 
 // Indices for special cards_
 // inline constexpr int kHiddenCard = 99;
@@ -1102,6 +1106,9 @@ bool AgnesSorelState::IsKnownFoundation() const { return is_known_foundation_; }
 bool AgnesSorelState::IsTerminal() const { return is_finished_; }
 
 bool AgnesSorelState::IsChanceNode() const {
+  // IsChanceNode if any card in tableau is hidden
+  // This happens at the start of game and after a new
+  // row is dealt from the waste to the tableau
   for (const auto& tableau : tableaus_) {
     if (!tableau.GetIsEmpty() ) {
       for (const auto& card : tableau.GetCards() ) {
@@ -1112,6 +1119,10 @@ bool AgnesSorelState::IsChanceNode() const {
     }
   }
   if (!is_known_foundation_) {
+    return true;
+  }
+  // If there are only two cards in the waste, they are revealed
+  if (waste_.GetCards().size == 2) {
     return true;
   }
   return false;
@@ -1279,6 +1290,18 @@ void AgnesSorelState::DoApplyAction(Action action) {
 
     MoveCards(selected_move);
     current_returns_ += current_rewards_;
+  } else if (action == kDeal) {
+    auto cards = waste_.GetCards();
+    if (waste_.GetIsEmpty()) {
+      SpielFatalError("kDeal is not a valid move when waste is empty");
+    }
+    if ( cards.size >= 7 ) {
+      // deal 7 cards from waste to tableau
+    } else {
+
+    }
+    // if (waste_.)
+    // loop over tableau piles and add one card from waste to pile
   }
 
   ++current_depth_;
@@ -1579,7 +1602,8 @@ bool AgnesSorelState::IsReversible(const Card& source,
     }
     case LocationType::kTableau: {
       // Move is irreversible if its source is a bottom card or over a hidden
-      // card. Basically if it's the first non-hidden_ card in the pile/tableau.
+      // card
+      // TODO: Not exactly
       auto it = std::find_if(source_pile->GetCards().begin(),
                              source_pile->GetCards().end(),
                              [](const Card& card) { return card.GetHidden(); });
@@ -1605,25 +1629,14 @@ AgnesSorelGame::AgnesSorelGame(const GameParameters& params)
 int AgnesSorelGame::NumDistinctActions() const {
   /* 52 Reveal Moves (one for each ordinary card)
    * 52 Foundation Moves (one for every ordinary card)
-   * 96 Tableau Moves (two for every ordinary card except aces)
-   * except aces or except kings??
-   * 4h can be moved on top of 5h or 5d
-   * Kings cannot be moved on top of any other card ... ?
-   *  4 King to Empty Tableau (one for every king)
-   * AgnesSorel: any card can be moved to Empty Tableau
-   *  1 End Game Move */
-
-  // the same thing, for Agnes Sorel
-  /* 52 Reveal Moves (one for each ordinary card)
-   * 52 Foundation Moves (one for every ordinary card)
    * 104 Tableau Moves (two for every ordinary card)
    * e.g. 4h can be moved on top of 5h or 5d
    * 52 Card to Empty Tableau moves
    * 52 Card to End of Tableau moves (when dealing new row)
    *  1 Deal new row move
    *  1 End Game move
-   * First estimate: 314 */
-  return 205;
+   * Total: 314 = 52 Reveal + 208 Move + 52 Deal + 1 Player deal + 1 End */
+  return 314;
 }
 
 int AgnesSorelGame::MaxChanceOutcomes() const { return kRevealEnd + 1; }
