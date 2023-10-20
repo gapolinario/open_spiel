@@ -87,15 +87,16 @@ inline constexpr int kRevealEnd = 52;
 // kMove actions are ones that are taken at decision nodes; they involve moving
 // a card to another cards_ location_. It starts at 53 because there are 52
 // reveal actions before it. See `NumDistinctActions()` in agnes_sorel.cc.
-// 261 is a special move, moves 7 cards from waste to end of tableau
+// 261-312 are moves from waste (hidden) to end of tableau
 inline constexpr int kMoveStart = 53;
-inline constexpr int kMoveEnd = 261;
+inline constexpr int kMoveEnd = 312;
 
-inline constexpr int kMoveWaste = 261;
+inline constexpr int kMoveWasteStart = 261;
+inline constexpr int kMoveWasteEnd = kMoveEnd;
 
 // A single action that the player may take. This deals hidden cards
 // from the waste to the tableau
-inline constexpr int kDeal = 262;
+inline constexpr int kDeal = 313;
 
 // Indices for special cards_
 // inline constexpr int kHiddenCard = 99;
@@ -913,51 +914,63 @@ Move::Move(Action action) {
   std::vector<SuitType> same_color_suits;
   action -= kActionOffset;
 
-  // The numbers used in the cases below are just used to divide action ids into
-  // groups (e.g. 1-132 are regular moves, 133-136 are the action ids of moves
-  // that move an ace to an empty foundation, etc.)
+  // The numbers used in the cases below are just used to divide
+  // action ids into groups
 
-  if (action >= 1 && action <= 132) {
-    // Handles ordinary moves
-    target_rank = ((action - 1) / 3) % 11 + 2;
-    target_suit = ((action - 1) / 33) + 1;
-    residual = ((action - 1) % 3);
-    if (residual == 0) {
-      source_rank = target_rank + 1;
-      source_suit = target_suit;
-    } else {
-      same_color_suits = GetSameColorSuits(static_cast<SuitType>(target_suit));
-      source_rank = target_rank - 1;
-      source_suit = static_cast<int>(same_color_suits[residual - 1]);
-    }
-  } else if (action >= 133 && action <= 136) {
-    // Handles ace to empty foundation moves
-    target_rank = 0;
-    target_suit = action - 132;
+  if (action >= 1 && action <= 48) {
+    // Handles card (not A) to foundation
+    source_rank = (action-1)%12+2;
+    source_suit = ((action-1)-(source_rank-2))/12+1;
+    target_rank = source_rank-1;
+    target_suit = source_suit;
+  } else if (action >= 49 && action <= 52) {
+    // Handles A on top of K in foundation
     source_rank = 1;
-    source_suit = target_suit;
-  } else if (action >= 137 && action <= 140) {
-    // Handles king to empty tableau moves
+    source_suit = action-48;
+    target_rank = 13;
+    target_suit = source_suit;
+  } else if (action >= 53 && action <= 100) {
+    // Handles card (not K) to tableau (same suit)
+    source_rank = (action-1)%12+1;
+    source_suit = ((action-53)-(source_rank-1))/12+1;
+    target_rank = source_rank+1;
+    target_suit = source_suit;
+  } else if (action >= 101 && action <= 104) {
+    // Handles K to A on tableau (same suit)
+    source_rank = 13;
+    source_suit = (action-101)/4+1;
+    target_rank = 1;
+    target_suit = source_suit;
+  } else if (action >= 105 && action <= 152) {
+    // Handles card (not K) to tableau (opposite suit)
+    source_rank = (action-105)%12+1;
+    source_suit = ((action-105)-(source_rank-1))/12+1;
+    target_rank = source_rank+1;
+    target_suit = (source_suit+1)%4+1;
+  } else if (action >= 153 && action <= 156) {
+    // Handles K to tableau (opposite suit)
+    source_rank = 13;
+    source_suit = (action-153)/4+1;
+    target_rank = source_rank+1;
+    target_suit = (source_suit+1)%4+1;
+  } else if (action >= 157 && action <= 208) {
+    // Handles card to empty tableau
     target_rank = 0;
     target_suit = 0;
-    source_rank = 13;
-    source_suit = action - 136;
-  } else if (action >= 141 && action <= 144) {
-    // Handles moves with ace targets
-    target_rank = 1;
-    target_suit = action - 140;
-    source_rank = 2;
-    source_suit = target_suit;
-  } else if (action >= 145 && action <= 152) {
-    // Handles moves with king targets
-    target_rank = 13;
-    target_suit = (action - 143) / 2;
-
-    residual = (action - 143) % 2;
-    same_color_suits = GetSameColorSuits(static_cast<SuitType>(target_suit));
-
-    source_rank = 12;
-    source_suit = static_cast<int>(same_color_suits[residual]);
+    source_rank = (action-157)%13+1;
+    source_suit = ((action-157)-(source_rank-1))/13+1;
+  } else if (action >= 209 && action <= 260) {
+    // Handles hidden card to tableau
+    target_rank = (action-209)%13+1;
+    target_suit = ((action-209)-(target_rank-1))/13+1;
+    source_rank = 14;
+    source_suit = 5;
+  } else if (action == 261) {
+    // Handles hidden card to empty tableau
+    target_rank = 0;
+    target_suit = 0;
+    source_rank = 14;
+    source_suit = 5;
   } else {
     SpielFatalError("action provided does not correspond with a move");
   }
@@ -1125,7 +1138,7 @@ bool AgnesSorelState::IsChanceNode() const {
     return true;
   }
   // If there are only two cards in the waste, they are revealed
-  if (waste_.GetCards().size == 2) {
+  if (waste_.GetCards().size() == 2) {
     return true;
   }
   return false;
@@ -1299,7 +1312,7 @@ void AgnesSorelState::DoApplyAction(Action action) {
       SpielFatalError("kDeal is not a valid move when waste is empty");
     }
     // deal 7 cards from waste to tableau
-    if ( cards.size >= 7 ) {
+    if ( cards.size() >= 7 ) {
       for (int i=0; i<7; i++) {
         Move deal = Move(261);
         is_reversible_ = false;
@@ -1307,7 +1320,6 @@ void AgnesSorelState::DoApplyAction(Action action) {
       }
     }
   }
-
   ++current_depth_;
   if (current_depth_ >= depth_limit_) {
     is_finished_ = true;
@@ -1636,12 +1648,13 @@ int AgnesSorelGame::NumDistinctActions() const {
    * 104 Tableau Moves (two for every ordinary card)
    * e.g. 4h can be moved on top of 5h or 5d
    * 52 Card to Empty Tableau moves
-   *  1 Card from Waste to End of Tableau moves
+   * 52 Hidden card from Waste to End of Tableau moves
    *  (card is always hidden here, so this is always the same move)
+   *  1 Hidden card from waste to empty tableau
    *  1 Deal new row move
    *  1 End Game move
-   * Total: 314 = 52 Reveal + 208 Move + 52 Deal + 1 Player deal + 1 End */
-  return 263;
+   * Total: 314 = 52 Reveal + 208 Move + 52 Deal + 1 Deal to empty tableau + 1 Player deal + 1 End */
+  return 315;
 }
 
 int AgnesSorelGame::MaxChanceOutcomes() const { return kRevealEnd + 1; }
