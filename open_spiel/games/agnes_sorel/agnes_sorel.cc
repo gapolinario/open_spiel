@@ -268,18 +268,6 @@ int GetMaxSize(LocationType location) {
 
 std::hash<std::string> hasher;
 
-int GetRankDistanceUp(RankType a, RankType b) {
-  if (a != RankType::kHidden && a != RankType::kNone && b != RankType::kHidden &&
-      b != RankType::kNone) {
-    auto ai = static_cast<int>(a);
-    auto bi = static_cast<int>(b);
-    // There are 13 cards_ in a suit_
-    return ((bi - ai) % 13);
-  } else {
-    return 14;
-  }
-}
-
 // Card Methods ================================================================
 
 Card::Card(bool hidden, SuitType suit, RankType rank, LocationType location)
@@ -748,7 +736,6 @@ std::vector<Card> Tableau::Sources() const {
       if (card.GetHidden()) {
         break;
       }
-      int distance_up = GetRankDistanceUp(prev_card.GetRank(),card.GetRank());
       if (card == *cards_.rbegin()) {
         sources.push_back(card);
       } else {
