@@ -87,12 +87,15 @@ inline constexpr int kRevealEnd = 52;
 // kMove actions are ones that are taken at decision nodes; they involve moving
 // a card to another cards_ location_. It starts at 53 because there are 52
 // reveal actions before it. See `NumDistinctActions()` in agnes_sorel.cc.
+// 261 is a special move, moves 7 cards from waste to end of tableau
 inline constexpr int kMoveStart = 53;
-inline constexpr int kMoveEnd = 312;
+inline constexpr int kMoveEnd = 261;
+
+inline constexpr int kMoveWaste = 261;
 
 // A single action that the player may take. This deals hidden cards
 // from the waste to the tableau
-inline constexpr int kDeal = 313;
+inline constexpr int kDeal = 262;
 
 // Indices for special cards_
 // inline constexpr int kHiddenCard = 99;
@@ -1295,13 +1298,14 @@ void AgnesSorelState::DoApplyAction(Action action) {
     if (waste_.GetIsEmpty()) {
       SpielFatalError("kDeal is not a valid move when waste is empty");
     }
+    // deal 7 cards from waste to tableau
     if ( cards.size >= 7 ) {
-      // deal 7 cards from waste to tableau
-    } else {
-
+      for (int i=0; i<7; i++) {
+        Move deal = Move(261);
+        is_reversible_ = false;
+        previous_states_.clear();
+      }
     }
-    // if (waste_.)
-    // loop over tableau piles and add one card from waste to pile
   }
 
   ++current_depth_;
@@ -1632,11 +1636,12 @@ int AgnesSorelGame::NumDistinctActions() const {
    * 104 Tableau Moves (two for every ordinary card)
    * e.g. 4h can be moved on top of 5h or 5d
    * 52 Card to Empty Tableau moves
-   * 52 Card to End of Tableau moves (when dealing new row)
+   *  1 Card from Waste to End of Tableau moves
+   *  (card is always hidden here, so this is always the same move)
    *  1 Deal new row move
    *  1 End Game move
    * Total: 314 = 52 Reveal + 208 Move + 52 Deal + 1 Player deal + 1 End */
-  return 314;
+  return 263;
 }
 
 int AgnesSorelGame::MaxChanceOutcomes() const { return kRevealEnd + 1; }
