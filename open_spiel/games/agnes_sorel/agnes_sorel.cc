@@ -65,14 +65,14 @@ inline constexpr const char* kGlyphArrow = "\U00002190";
 inline constexpr int kNumRanks = 13;
 
 // Number of cards_ that can be in each pile type_
-inline constexpr int kMaxSizeWaste = 24;
+inline constexpr int kMaxSizeWaste = 23;
 inline constexpr int kMaxSizeFoundation = 13;
 inline constexpr int kMaxSizeTableau = 26;
 
 // Number of sources that can be in each pile type_
-inline constexpr int kMaxSourcesWaste = 8; // TODO: 2 in fact
+inline constexpr int kMaxSourcesWaste = 8; // OBS: 2 in fact
 inline constexpr int kMaxSourcesFoundation = 1;
-inline constexpr int kMaxSourcesTableau = 52; //13; // TODO: ??
+inline constexpr int kMaxSourcesTableau = 52;
 
 // These divide up the action ids into sections. kEnd is a single action that is
 // used to end the game when no other actions are available.
@@ -115,7 +115,7 @@ inline constexpr int kWasteTensorLength = 53;
 // Constant for how many hidden_ cards_ can show up in a tableau. As hidden_
 // cards_ can't be added, the max is the highest number in a tableau at the
 // start of the game: 6
-inline constexpr int kMaxHiddenCard = 6; // TODO: Can I change this?
+inline constexpr int kMaxHiddenCard = 6; // OBS: Can I change this?
 
 // Only used in one place and just for consistency (to match kChancePlayerId&
 // kTerminalPlayerId)
@@ -152,7 +152,7 @@ const std::map<RankType, double> kFoundationPoints = {
     {RankType::kK, 10.0}
     // endregion
 };
-// TODO: Could change, 100 would correspond to the foundation_card_
+// OBS: Could change, 100 would correspond to the foundation_card_
 // but this wouldn't be const anymore
 
 const std::map<SuitType, PileID> kSuitToPile = {
@@ -251,7 +251,7 @@ int GetCardIndex(RankType rank, SuitType suit) {
 
 int GetMaxSize(LocationType location) {
   if (location >= LocationType::kDeck && location <= LocationType::kWaste) {
-    // Cards can only be removed from the waste_&  there are 24 cards_ in it
+    // Cards can only be removed from the waste_&  there are 23 cards_ in it
     // at the start of the game
     return kMaxSizeWaste;
   } else if (location == LocationType::kFoundation) {
@@ -417,7 +417,8 @@ std::vector<Card> Card::LegalChildren() const {
         break;
       }
       case LocationType::kFoundation: {
-        // TODO: fix
+        // OBS: foundation rank, see below, maybe it's good to have an error
+        // throwing here
         return {};
         break;
       }
@@ -458,6 +459,10 @@ std::vector<Card> Card::LegalChildren(RankType foundation_rank) const {
     RankType child_rank;
     std::vector<SuitType> child_suits;
 
+    // An empty tableau accepts any card (maximum of 52 children)
+    // And any card accepts two cards of rank one less
+    child_suits.reserve(4);
+
     switch (location_) {
       case LocationType::kTableau: {
         // for cards in tableau, ignore foundation_rank if given
@@ -476,11 +481,10 @@ std::vector<Card> Card::LegalChildren(RankType foundation_rank) const {
           }
         } else if (rank_ >= RankType::kA && rank_ <= RankType::kQ) {
           // Accept a card of the same suit that is one rank higher
-          // (turning the corner)
           child_rank = static_cast<RankType>(static_cast<int>(rank_) + 1);
           child_suits = {suit_};
         } else if (rank_ == RankType::kK) {
-          // Accept Ace
+          // Accept Ace (turn the corner)
           child_rank = RankType::kA;
           child_suits = {suit_};
         } else {
@@ -494,10 +498,6 @@ std::vector<Card> Card::LegalChildren(RankType foundation_rank) const {
         return {};
       }
     }
-
-    // An empty tableau accepts any card (maximum of 52 children)
-    // And any card accepts two cards of rank one less
-    child_suits.reserve(4);
 
     std::vector<Card> legal_children;
     legal_children.reserve(4);
@@ -592,8 +592,8 @@ std::vector<Card> Pile::Targets() const {
 std::vector<Card> Pile::Sources() const {
   std::cout << "Pile::Targets()" << std::endl;
   std::vector<Card> sources;
-  // A pile can have a maximum of 13 cards as sources (1 for each rank)
-  sources.reserve(kNumRanks);
+  // A pile can have a maximum of 26 cards as sources (2 for each rank, all of the same color)
+  sources.reserve(2*kNumRanks);
   switch (type_) {
     case LocationType::kFoundation: {
       if (!cards_.empty()) {
@@ -602,14 +602,28 @@ std::vector<Card> Pile::Sources() const {
         return {};
       }
     }
-    case LocationType::kTableau: {
+    case LocationType::kTableau: { // TODO: fix
       if (!cards_.empty()) {
-        for (const auto& card : cards_) {
-          if (!card.GetHidden()) {
-            sources.push_back(card);
+        for (auto it = cards_.rbegin(); it != cards_.rend(); ++it) {
+          const auto& card = *it;
+          auto prev_card = *cards_.rbegin();
+          if (card.GetHidden()) {
+            break;
           }
+          if (card == *cards_.rbegin()) {
+            sources.push_back(card);
+          } else {
+            auto children = card.LegalChildren();
+            if (std::find(children.begin(), children.end(),
+                prev_card) != children.end()) {
+              sources.push_back(card);
+              prev_card = card;
+            } else {
+              break;
+            }
+          } 
         }
-        return sources;
+      return sources;
       } else {
         return {};
       }
@@ -619,10 +633,9 @@ std::vector<Card> Pile::Sources() const {
         int i = 0;
         for (const auto& card : cards_) {
           if (!card.GetHidden()) {
-            // this defines turn1 or turn3 rule ?
-            if (i % 3 == 0) {
-              sources.push_back(card);
-            }
+            // All revealed cards are sources
+            // This only happens in the end of the game
+            sources.push_back(card);
             ++i;
           } else {
             break;
@@ -639,7 +652,7 @@ std::vector<Card> Pile::Sources() const {
   }
 }
 
-std::vector<Card> Pile::Split(Card card) {
+std::vector<Card> Pile::Split(Card card) { // TODO: fix
   std::vector<Card> split_cards;
   switch (type_) {
     case LocationType::kFoundation: {
@@ -711,7 +724,7 @@ std::string Pile::ToString(bool colored) const {
 Tableau::Tableau(PileID id)
     : Pile(LocationType::kTableau, id, SuitType::kNone) {}
 
-std::vector<Card> Tableau::Targets() const {
+std::vector<Card> Tableau::Targets() const { // TODO: fix
   if (!cards_.empty()) {
     auto back_card = cards_.back();
     if (!back_card.GetHidden()) {
@@ -1058,8 +1071,6 @@ AgnesSorelState::AgnesSorelState(std::shared_ptr<const Game> game)
   depth_limit_ = parameters.at("depth_limit").int_value();
 
   // Create foundations_
-  // TODO: First card on the foundation is the 29th card of the deck
-  // In Klondike the foundation is always the ace
   for (const auto& suit_ : kSuits) {
     foundations_.emplace_back(kSuitToPile.at(suit_), suit_);
   }
@@ -1081,8 +1092,7 @@ AgnesSorelState::AgnesSorelState(std::shared_ptr<const Game> game)
   }
 
   // Create waste_
-  // TODO: There's no waste in agnes
-  for (int i = 1; i <= 24; i++) {
+  for (int i = 1; i <= 23; i++) {
     auto new_card =
         Card(true, SuitType::kHidden, RankType::kHidden, LocationType::kWaste);
     waste_.Extend({new_card});
@@ -1192,6 +1202,7 @@ std::string AgnesSorelState::ObservationString(Player player) const {
 
 void AgnesSorelState::ObservationTensor(Player player,
                                        absl::Span<float> values) const {
+                                        // TODO: fix
   SPIEL_CHECK_GE(player, 0);
   SPIEL_CHECK_LT(player, num_players_);
 
@@ -1324,7 +1335,7 @@ std::vector<double> AgnesSorelState::Rewards() const {
   return {current_rewards_};
 }
 
-std::vector<Action> AgnesSorelState::LegalActions() const {
+std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
   if (IsTerminal()) {
     return {};
   } else if (IsChanceNode()) {
@@ -1430,12 +1441,11 @@ std::vector<Card> AgnesSorelState::Sources(
     }
   }
 
-  /* solitaire only, no waste in agnes sorel */
-  /*if (loc == LocationType::kWaste || loc == LocationType::kMissing) {
+  if (loc == LocationType::kWaste || loc == LocationType::kMissing) {
     std::vector<Card> current_sources = waste_.Sources();
     sources.insert(sources.end(), current_sources.begin(),
                    current_sources.end());
-  }*/
+  }
 
   return sources;
 }
@@ -1621,6 +1631,7 @@ bool AgnesSorelState::IsReversible(const Card& source,
 }
 
 // AgnesSorelGame Methods =======================================================
+// OK
 
 AgnesSorelGame::AgnesSorelGame(const GameParameters& params)
     : Game(kGameType, params),
@@ -1657,21 +1668,21 @@ double AgnesSorelGame::MinUtility() const {
 }
 
 double AgnesSorelGame::MaxUtility() const {
-  /* Waste (24 * 20 = 480)
-     24 cards are in the waste initially. 20 points are rewarded for every one
+  /* Waste (23 * 20 = 460)
+     23 cards are in the waste initially. 20 points are rewarded for every one
      that is moved from the waste.
      Tableau (21 * 0 = 0)
      all cards are revealed in the tableaus_ from the start.
+     TODO: But one could have points for the partial piles in the tableau
      Foundation (4 * (100 + 90 + 80 + 70 + 60 + 50 + 40 + 30 + 20 + 10
      + 10 + 10 + 10) - 100 = 4 * 580 - 100 = 2,220)
-     1 card is in the foundations
-     initially. A varying number of points, based on the cards rank, are
+     1 card is in the foundations initially.
+     A varying number of points, based on the cards rank, are
      awarded when the card is moved to the foundation. Each complete suit in
      the foundation is worth 580 points. `kFoundationPoints` in `agnes_sorel.h`
      outlines how much each rank is worth.
-     Max Utility = 480 + 2,220 = 2,700 */
-  //return 2700.0;
-  return 3220.0;
+     Max Utility = 460 + 2,220 = 2,680 */
+  return 2680.0;
 }
 
 std::vector<int> AgnesSorelGame::ObservationTensorShape() const {
@@ -1684,9 +1695,9 @@ std::vector<int> AgnesSorelGame::ObservationTensorShape() const {
      Foundation (4 * 14 = 56)
      Each foundation is represented as a 14 element vector
      (13 ranks + 1 empty foundation)
-     Total Length = 1,219 + 371 + 56 = 1,646 */
-  //return {1646};
-  return {1741};
+     Foundation rank is 1 element
+     Total Length = 1,219 + 371 + 56 + 1 = 1,647 */
+  return {1647};
 }
 
 std::unique_ptr<State> AgnesSorelGame::NewInitialState() const {
