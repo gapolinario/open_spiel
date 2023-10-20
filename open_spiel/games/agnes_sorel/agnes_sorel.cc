@@ -67,12 +67,12 @@ inline constexpr int kNumRanks = 13;
 // Number of cards_ that can be in each pile type_
 inline constexpr int kMaxSizeWaste = 24;
 inline constexpr int kMaxSizeFoundation = 13;
-inline constexpr int kMaxSizeTableau = 19;
+inline constexpr int kMaxSizeTableau = 26;
 
 // Number of sources that can be in each pile type_
-inline constexpr int kMaxSourcesWaste = 8;
+inline constexpr int kMaxSourcesWaste = 8; // TODO: 2 in fact
 inline constexpr int kMaxSourcesFoundation = 1;
-inline constexpr int kMaxSourcesTableau = 13;
+inline constexpr int kMaxSourcesTableau = 52; //13; // TODO: ??
 
 // These divide up the action ids into sections. kEnd is a single action that is
 // used to end the game when no other actions are available.
@@ -90,9 +90,6 @@ inline constexpr int kRevealEnd = 52;
 // 261-312 are moves from waste (hidden) to end of tableau
 inline constexpr int kMoveStart = 53;
 inline constexpr int kMoveEnd = 312;
-
-inline constexpr int kMoveWasteStart = 261;
-inline constexpr int kMoveWasteEnd = kMoveEnd;
 
 // A single action that the player may take. This deals hidden cards
 // from the waste to the tableau
@@ -118,7 +115,7 @@ inline constexpr int kWasteTensorLength = 53;
 // Constant for how many hidden_ cards_ can show up in a tableau. As hidden_
 // cards_ can't be added, the max is the highest number in a tableau at the
 // start of the game: 6
-inline constexpr int kMaxHiddenCard = 6;
+inline constexpr int kMaxHiddenCard = 6; // TODO: Can I change this?
 
 // Only used in one place and just for consistency (to match kChancePlayerId&
 // kTerminalPlayerId)
@@ -155,6 +152,8 @@ const std::map<RankType, double> kFoundationPoints = {
     {RankType::kK, 10.0}
     // endregion
 };
+// TODO: Could change, 100 would correspond to the foundation_card_
+// but this wouldn't be const anymore
 
 const std::map<SuitType, PileID> kSuitToPile = {
     // region Maps a foundation suit_ to the ID of the foundation
@@ -259,8 +258,8 @@ int GetMaxSize(LocationType location) {
     // There are 13 cards_ in a suit_
     return kMaxSizeFoundation;
   } else if (location == LocationType::kTableau) {
-    // There are a maximum of 6 hidden cards and 13 non-hidden cards in a
-    // tableau (1 for each rank)
+    // There are a maximum of 0 hidden cards and 26 non-hidden cards in a
+    // tableau (2 for each rank, all of the same color)
     return kMaxSizeTableau;
   } else {
     return 0;
