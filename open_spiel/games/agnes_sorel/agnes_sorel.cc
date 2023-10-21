@@ -630,13 +630,11 @@ std::vector<Card> Pile::Sources() const {
     }
     case LocationType::kWaste: {
       if (!cards_.empty()) {
-        int i = 0;
         for (const auto& card : cards_) {
           if (!card.GetHidden()) {
             // All revealed cards are sources
             // This only happens in the end of the game
             sources.push_back(card);
-            ++i;
           } else {
             break;
           }
@@ -652,7 +650,7 @@ std::vector<Card> Pile::Sources() const {
   }
 }
 
-std::vector<Card> Pile::Split(Card card) { // TODO: fix
+std::vector<Card> Pile::Split(Card card) {
   std::vector<Card> split_cards;
   switch (type_) {
     case LocationType::kFoundation: {
@@ -724,7 +722,7 @@ std::string Pile::ToString(bool colored) const {
 Tableau::Tableau(PileID id)
     : Pile(LocationType::kTableau, id, SuitType::kNone) {}
 
-std::vector<Card> Tableau::Targets() const { // TODO: fix
+std::vector<Card> Tableau::Targets() const {
   if (!cards_.empty()) {
     auto back_card = cards_.back();
     if (!back_card.GetHidden()) {
@@ -840,15 +838,9 @@ std::vector<Card> Waste::Sources() const {
   std::vector<Card> sources;
   sources.reserve(kMaxSourcesWaste);
   if (!cards_.empty()) {
-    int i = 0;
     for (const auto& card : cards_) {
       if (!card.GetHidden()) {
-        // Every 3rd card in the waste can be moved
-        // this defines turn1 or turn3 rule ?
-        if (i % 3 == 0) {
-          sources.push_back(card);
-        }
-        ++i;
+        sources.push_back(card);
       } else {
         break;
       }
