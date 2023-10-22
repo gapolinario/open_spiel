@@ -602,7 +602,7 @@ std::vector<Card> Pile::Sources() const {
         return {};
       }
     }
-    case LocationType::kTableau: { // TODO: fix
+    case LocationType::kTableau: {
       if (!cards_.empty()) {
         for (auto it = cards_.rbegin(); it != cards_.rend(); ++it) {
           const auto& card = *it;
@@ -892,17 +892,12 @@ Move::Move(RankType target_rank, SuitType target_suit, RankType source_rank,
 }
 
 Move::Move(Action action) {
-  // `base` refers to the starting point that indices start from (e.g. if it's
-  // 7, and there's 3 cards in its group, their action ids will be 8, 9, 10).
-  // `residual` is just the difference between the id and the base.
 
-  int residual;
   int target_rank;
   int source_rank;
   int target_suit;
   int source_suit;
 
-  std::vector<SuitType> same_color_suits;
   action -= kActionOffset;
 
   // The numbers used in the cases below are just used to divide
@@ -986,57 +981,66 @@ Action Move::ActionId() const {
   int target_suit = static_cast<int>(target_.GetSuit());
   int source_suit = static_cast<int>(source_.GetSuit());
 
+  int offset = 52;
+
   int base;
-  int residual;
 
-  // `base` refers to the starting point that indices start from (e.g. if it's
-  // 7, and there's 3 cards in its group, their action ids will be 8, 9, 10).
-  // `residual` is just the difference between the id and the base.
-
-  switch (target_rank) {
-    case static_cast<int>(RankType::kNone): {
-      switch (source_rank) {
-        case static_cast<int>(RankType::kA): {
-          base = 132;
-          break;
-        }
-        case static_cast<int>(RankType::kK): {
-          base = 136;
-          break;
-        }
-        default: {
-          base = -999;
-          break;
-          // SpielFatalError("source_.rank_ has an incorrect value");
-        }
-      }
-      return base + source_suit + kActionOffset;
-    }
-    case static_cast<int>(RankType::kA): {
-      base = 140;
-      return base + source_suit + kActionOffset;
-    }
-    case static_cast<int>(RankType::kK): {
-      base = 144;
-      if (source_suit <= 2) {
-        residual = -1;
-      } else {
-        residual = 0;
-      }
-      return base + (2 * target_suit) + residual + kActionOffset;
-    }
-    default: {
-      base = (target_suit - 1) * 33 + (target_rank - 2) * 3;
-      if (target_suit == source_suit) {
-        residual = 1;
-      } else if (source_suit <= 2) {
-        residual = 2;
-      } else {
-        residual = 3;
-      }
-      return base + residual + kActionOffset;
-    }
+  // Handle all cases with hidden or none cards
+  if (target_rank == 0 && target_suit == 0 && source_rank == 14 &&
+      source_suit == 5) {
+    // Handles hidden card to empty tableau
+    return 261+offset;
+  } else if (source_rank == 14 && source_suit == 5 && target_rank != 0 &&
+             target_rank != 14 && target_suit != 0 && target_suit != 5) {
+      // Handles hidden card to tableau
+      base = 209+offset;
+      return base + (target_suit - 1) * 13 + (target_rank - 1);
+  } else if (target_rank == 0 && target_suit == 0 && source_rank != 0 &&
+             source_rank != 14 && source_suit != 0 && source_suit != 5) {
+      // Handles card to empty tableau
+      base = 157+offset;
+      return base + (source_suit - 1) * 13 + (source_rank - 1);
   }
+
+  // Handle all cases without hidden or unknown cards
+  if (target_rank != 0 && target_rank != 14 && source_rank != 0 &&
+      source_rank != 14 && target_suit != 0 && target_suit != 5 &&
+      source_suit != 0 & source_suit != 5) {
+
+    if (source_rank == 13 && target_rank == 1 && abs(target_suit - source_suit)%4 == 2) {
+      // Handles K to A on tableau (opposite suit)
+      base = 153+offset;
+      return base + (source_suit - 1);
+      // TODO: continue
+    } else if (target_rank - source_rank == 1 && abs(target_suit - source_suit)%4 == 2) {
+      // Handles card (not K) to tableau (opposite suit)
+      base = 105+offset;
+      return base + (source_suit-1) * 12 + (source_rank-1);
+    } else if (target_rank == 1 && source_rank == 13 &&
+              target_suit == source_suit) {
+      // Handles K to A on tableau (same suit)
+      base = 101+offset;
+      return base + (source_suit - 1);
+    } else if (target_rank - source_rank == 1 && target_suit == source_suit) {
+      // Handles card (not K) to tableau (same suit)
+      base = 53+offset;
+      return base + (source_suit-1) * 12 + (source_rank-1);
+    } else if (source_rank == 1 && target_rank == 13 &&
+              target_suit == source_suit) {
+      // Handles A on top of K in foundation
+      base = 49+offset;
+      return base + (source_suit - 1);
+    } else if (target_suit == source_suit && source_rank - target_rank == 1) {
+      // Handles card (not A) to foundation
+      base = 1+offset;
+      return base + (source_suit-1) * 12 + (source_rank-2);
+    } else {
+      SpielFatalError("move not found");
+    }
+  } else {
+    SpielFatalError("move not found");
+  }
+
 }
 
 std::string Move::ToString(bool colored) const {
