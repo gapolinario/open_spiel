@@ -284,7 +284,8 @@ class AgnesSorelState : public State {
   Pile* GetPile(const Card& card);
   const Pile* GetPile(const Card& card) const;
   void MoveCards(const Move& move);
-  bool IsReversible(const Card& source, const Pile* source_pile) const;
+  bool IsReversible(const Card& source, const Pile* source_pile,
+                    const Card& target, const Pile* target_pile) const;
 
  private:
   Waste waste_;

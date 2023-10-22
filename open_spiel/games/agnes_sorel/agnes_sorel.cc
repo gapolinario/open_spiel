@@ -18,6 +18,8 @@
 #include "open_spiel/spiel.h"
 #include "open_spiel/spiel_utils.h"
 
+#include <iostream> // TODO: remove
+
 namespace open_spiel::agnes_sorel {
 
 namespace {
@@ -1011,7 +1013,7 @@ Action Move::ActionId() const {
       // Handles K to A on tableau (opposite suit)
       base = 153+offset;
       return base + (source_suit - 1);
-      else if (target_rank - source_rank == 1 && abs(target_suit - source_suit)%4 == 2) {
+    } else if (target_rank - source_rank == 1 && abs(target_suit - source_suit)%4 == 2) {
       // Handles card (not K) to tableau (opposite suit)
       base = 105+offset;
       return base + (source_suit-1) * 12 + (source_rank-1);
@@ -1287,7 +1289,9 @@ void AgnesSorelState::DoApplyAction(Action action) {
   } else if (action >= kMoveStart && action <= kMoveEnd) {
     Move selected_move = Move(action);
     is_reversible_ = IsReversible(selected_move.GetSource(),
-                                  GetPile(selected_move.GetSource()));
+                                  GetPile(selected_move.GetSource()),
+                                  selected_move.GetTarget(),
+                                  GetPile(selected_move.GetTarget()));
 
     if (is_reversible_) {
       std::string current_observation = ObservationString(0);
@@ -1330,7 +1334,7 @@ std::vector<double> AgnesSorelState::Rewards() const {
   return {current_rewards_};
 }
 
-std::vector<Action> AgnesSorelState::LegalActions() const {
+std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
   if (IsTerminal()) {
     return {};
   } else if (IsChanceNode()) {
@@ -1342,7 +1346,8 @@ std::vector<Action> AgnesSorelState::LegalActions() const {
       // If the state is reversible, we need to check each move to see if it is
       // too.
       for (const auto& move : CandidateMoves()) {
-        if (IsReversible(move.GetSource(), GetPile(move.GetSource()))) {
+        if (IsReversible(move.GetSource(), GetPile(move.GetSource()),
+                        move.GetTarget(),GetPile(move.GetTarget()))) {
           auto action_id = move.ActionId();
           auto child = Child(action_id);
 
@@ -1536,10 +1541,10 @@ std::vector<Move> AgnesSorelState::CandidateMoves() const {
           if (source_pile->GetLastCard() == source) {
             candidate_moves.emplace_back(target, source);
           }
-        } else if (source.GetRank() == RankType::kK &&
-                   target.GetSuit() == SuitType::kNone &&
+        // Any card to empty tableau
+        } else if (target.GetSuit() == SuitType::kNone &&
                    target.GetRank() == RankType::kNone) {
-          // Check is source is not a bottom
+          // Check if source is not a bottom
           if (source_pile->GetType() == LocationType::kWaste ||
               (source_pile->GetType() == LocationType::kTableau &&
                !(source_pile->GetFirstCard() == source))) {
@@ -1599,7 +1604,9 @@ void AgnesSorelState::MoveCards(const Move& move) {
 }
 
 bool AgnesSorelState::IsReversible(const Card& source,
-                                  const Pile* source_pile) const {
+                                  const Pile* source_pile,
+                                  const Card& target,
+                                  const Pile* target_pile) const {
   switch (source.GetLocation()) {
     case LocationType::kWaste: {
       return false;
@@ -1608,14 +1615,50 @@ bool AgnesSorelState::IsReversible(const Card& source,
       return true;
     }
     case LocationType::kTableau: {
-      // Move is irreversible if its source is a bottom card or over a hidden
-      // card
-      // TODO: Not exactly
-      auto it = std::find_if(source_pile->GetCards().begin(),
-                             source_pile->GetCards().end(),
-                             [](const Card& card) { return card.GetHidden(); });
-
-      return !(*it == source);
+      // Reversible moves:
+      // 1. From card with legal parent to empty tableau
+      // e.g.: 4h over 3d moved to empty tableau
+      // 2. From card with legal parent to other legal parent
+      // e.g.: 4h over 3d moved to 3h
+      // 3. From single card on a pile to an empty tableau
+      // 4. From single card on a pile to a legal parent
+      // e.g.: 4h (single) moved to 3h or 3d
+      // TODO: empty_tableau.LegalChildren = all cards, so this can be simplified
+      // From single card on a pile
+      if (source_pile->GetFirstCard() == source) {
+        if (target_pile->GetIsEmpty()) {
+          return true;
+        } else {
+          auto target_children = target.LegalChildren();
+          if (std::find(target_children.begin(), target_children.end(),
+              source) != target_children.end()) {
+            return true;
+          } else {
+            return false;
+          }
+        }
+      // From card on a not single pile
+      } else {
+        
+        auto source_children = source_pile->GetCards().rbegin()[1].LegalChildren();
+        // children of second to last card in source pile
+        if (std::find(source_children.begin(), source_children.end(),
+            source) != source_children.end()) {
+          if (target_pile->GetIsEmpty()) {
+            return true;
+          } else {
+            auto target_children = target.LegalChildren();
+            if (std::find(target_children.begin(), target_children.end(),
+                source) != target_children.end()) {
+              return true;
+            } else {
+                return false;
+            }
+          }
+        } else {
+          return false;
+        }
+      }
     }
     default: {
       // Returns false if the source card is not in the waste, foundations,
