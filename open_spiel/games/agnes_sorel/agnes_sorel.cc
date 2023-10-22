@@ -1011,8 +1011,7 @@ Action Move::ActionId() const {
       // Handles K to A on tableau (opposite suit)
       base = 153+offset;
       return base + (source_suit - 1);
-      // TODO: continue
-    } else if (target_rank - source_rank == 1 && abs(target_suit - source_suit)%4 == 2) {
+      else if (target_rank - source_rank == 1 && abs(target_suit - source_suit)%4 == 2) {
       // Handles card (not K) to tableau (opposite suit)
       base = 105+offset;
       return base + (source_suit-1) * 12 + (source_rank-1);
@@ -1331,7 +1330,7 @@ std::vector<double> AgnesSorelState::Rewards() const {
   return {current_rewards_};
 }
 
-std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
+std::vector<Action> AgnesSorelState::LegalActions() const {
   if (IsTerminal()) {
     return {};
   } else if (IsChanceNode()) {
