@@ -438,11 +438,8 @@ std::vector<Card> Card::LegalChildren() const {
       SpielFatalError("child_suits should not be empty");
     }
 
-    std::cerr << "here" << std::endl; // TODO: REMOVE
     for (const auto& child_suit : child_suits) {
       for (const auto& child_rank : child_ranks) {
-        //std::cerr << "suit: " << static_cast<int>(child_suit) << std::endl; // TODO: REMOVE
-        //std::cerr << "rank: " << static_cast<int>(child_rank) << std::endl; // TODO: REMOVE
         auto child = Card(false, child_suit, child_rank);
         legal_children.push_back(child);
       }
@@ -1269,7 +1266,7 @@ void AgnesSorelState::DoApplyAction(Action action) {
         for (auto& card : tableau.GetCards()) {
           if (card.GetHidden()) {
             tableau.Reveal(revealed_card);
-            card_map_.insert_or_assign(card, tableau.GetID());
+            card_map_.insert_or_assign(revealed_card, tableau.GetID());
             found_card = true;
             break;
           }
@@ -1326,6 +1323,12 @@ void AgnesSorelState::DoApplyAction(Action action) {
   if (current_depth_ >= depth_limit_) {
     is_finished_ = true;
   }
+
+  // TODO: REMOVE, begin here
+  for (auto const& it: card_map_) {
+    std::cout << it.first.ToString() << " ;; " << static_cast<int>(it.second) << std::endl;
+  }
+  // TODO: REMOVE, end here
 }
 
 std::vector<double> AgnesSorelState::Returns() const {
@@ -1372,7 +1375,6 @@ std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
     } else {
       // If the state isn't reversible, all candidate moves are legal
       for (const auto& move : CandidateMoves()) {
-        std::cerr << move.ActionId() << std::endl; // TODO: remove
         legal_actions.push_back(move.ActionId());
       }
     }
@@ -1532,7 +1534,6 @@ std::vector<Move> AgnesSorelState::CandidateMoves() const {
   bool found_empty_tableau = false;
 
   for (auto& target : targets) {
-    std::cerr << "target: " << target.ToString() << std::endl; // TODO: remove
     if (target.GetSuit() == SuitType::kNone &&
         target.GetRank() == RankType::kNone) {
       if (found_empty_tableau) {
@@ -1542,9 +1543,8 @@ std::vector<Move> AgnesSorelState::CandidateMoves() const {
       }
     }
     for (auto& source : target.LegalChildren(foundation_rank_)) {
-      std::cerr << "children: " << source.ToString() << std::endl; // TODO: remove
       if (std::find(sources.begin(), sources.end(), source) != sources.end()) {
-        auto* source_pile = GetPile(source); // TODO: error is here
+        auto* source_pile = GetPile(source);
         if (target.GetLocation() == LocationType::kFoundation &&
             source_pile->GetType() == LocationType::kTableau) {
           if (source_pile->GetLastCard() == source) {
