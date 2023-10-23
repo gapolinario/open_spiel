@@ -409,7 +409,7 @@ std::vector<Card> Card::LegalChildren() const {
           break;
         } else if (rank_ == RankType::kA) {
           // Aces accepts Ks of a same color suit (Turn the corner)
-          child_ranks.push_back(RankType::kQ);
+          child_ranks.push_back(RankType::kK);
           child_suits = GetSameColorSuits(suit_);
           break;
         } else {
@@ -438,8 +438,11 @@ std::vector<Card> Card::LegalChildren() const {
       SpielFatalError("child_suits should not be empty");
     }
 
+    std::cerr << "here" << std::endl; // TODO: REMOVE
     for (const auto& child_suit : child_suits) {
       for (const auto& child_rank : child_ranks) {
+        //std::cerr << "suit: " << static_cast<int>(child_suit) << std::endl; // TODO: REMOVE
+        //std::cerr << "rank: " << static_cast<int>(child_rank) << std::endl; // TODO: REMOVE
         auto child = Card(false, child_suit, child_rank);
         legal_children.push_back(child);
       }
@@ -482,6 +485,7 @@ std::vector<Card> Card::LegalChildren(RankType foundation_rank) const {
             return {};
           }
         } else if (rank_ >= RankType::kA && rank_ <= RankType::kQ) {
+          std::cerr << "error abc" << std::endl; // TODO: remove
           // Accept a card of the same suit that is one rank higher
           child_rank = static_cast<RankType>(static_cast<int>(rank_) + 1);
           child_suits = {suit_};
@@ -1341,6 +1345,22 @@ std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
     return LegalChanceOutcomes();
   } else {
     std::vector<Action> legal_actions;
+    std::cerr << std::boolalpha; // TODO: remove
+    std::cerr << "is reversible: " << is_reversible_ << std::endl; // TODO; remove
+    std::cerr << "is known foundation: " << is_known_foundation_ << std::endl; // TODO; remove
+
+    // test, begins here. TODO: REMOVE
+    std::vector<Card> sources = Sources();
+    for (auto& source: sources) {
+      std::cerr << "source: " << source.ToString() << std::endl; // TODO: remove
+      if (source.LegalChildren(foundation_rank_).size() == 0) {
+        std::cerr << "no legal children for source:" << source.ToString() << std::endl; // TODO: remove
+      }
+      for (auto& child: source.LegalChildren(foundation_rank_)) {
+        std::cerr << "child: " << child.ToString() << std::endl; // TODO: remove
+      }
+    }
+    // test, ends here, TODO: remove
 
     if (is_reversible_) {
       // If the state is reversible, we need to check each move to see if it is
@@ -1366,6 +1386,7 @@ std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
     } else {
       // If the state isn't reversible, all candidate moves are legal
       for (const auto& move : CandidateMoves()) {
+        std::cerr << move.ActionId() << std::endl; // TODO: remove
         legal_actions.push_back(move.ActionId());
       }
     }
@@ -1525,6 +1546,7 @@ std::vector<Move> AgnesSorelState::CandidateMoves() const {
   bool found_empty_tableau = false;
 
   for (auto& target : targets) {
+    std::cerr << "target: " << target.ToString() << std::endl; // TODO: remove
     if (target.GetSuit() == SuitType::kNone &&
         target.GetRank() == RankType::kNone) {
       if (found_empty_tableau) {
@@ -1534,8 +1556,9 @@ std::vector<Move> AgnesSorelState::CandidateMoves() const {
       }
     }
     for (auto& source : target.LegalChildren(foundation_rank_)) {
+      std::cerr << "children: " << source.ToString() << std::endl; // TODO: remove
       if (std::find(sources.begin(), sources.end(), source) != sources.end()) {
-        auto* source_pile = GetPile(source);
+        auto* source_pile = GetPile(source); // TODO: error is here
         if (target.GetLocation() == LocationType::kFoundation &&
             source_pile->GetType() == LocationType::kTableau) {
           if (source_pile->GetLastCard() == source) {
@@ -1622,38 +1645,28 @@ bool AgnesSorelState::IsReversible(const Card& source,
       // e.g.: 4h over 3d moved to 3h
       // 3. From single card on a pile to an empty tableau
       // 4. From single card on a pile to a legal parent
-      // e.g.: 4h (single) moved to 3h or 3d
-      // TODO: empty_tableau.LegalChildren = all cards, so this can be simplified
+      // e.g.: 4h (single) moved to 3h or 3d      
       // From single card on a pile
       if (source_pile->GetFirstCard() == source) {
-        if (target_pile->GetIsEmpty()) {
+        auto target_children = target.LegalChildren();
+        if (std::find(target_children.begin(), target_children.end(),
+            source) != target_children.end()) {
           return true;
         } else {
+          return false;
+        }
+      // From card on a not single pile
+      } else {
+        auto source_children = source_pile->GetCards().rbegin()[1].LegalChildren();
+        // children of second to last card in source pile
+        if (std::find(source_children.begin(), source_children.end(),
+            source) != source_children.end()) {
           auto target_children = target.LegalChildren();
           if (std::find(target_children.begin(), target_children.end(),
               source) != target_children.end()) {
             return true;
           } else {
             return false;
-          }
-        }
-      // From card on a not single pile
-      } else {
-        
-        auto source_children = source_pile->GetCards().rbegin()[1].LegalChildren();
-        // children of second to last card in source pile
-        if (std::find(source_children.begin(), source_children.end(),
-            source) != source_children.end()) {
-          if (target_pile->GetIsEmpty()) {
-            return true;
-          } else {
-            auto target_children = target.LegalChildren();
-            if (std::find(target_children.begin(), target_children.end(),
-                source) != target_children.end()) {
-              return true;
-            } else {
-                return false;
-            }
           }
         } else {
           return false;
