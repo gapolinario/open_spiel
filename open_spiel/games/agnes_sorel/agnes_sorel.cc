@@ -485,7 +485,6 @@ std::vector<Card> Card::LegalChildren(RankType foundation_rank) const {
             return {};
           }
         } else if (rank_ >= RankType::kA && rank_ <= RankType::kQ) {
-          std::cerr << "error abc" << std::endl; // TODO: remove
           // Accept a card of the same suit that is one rank higher
           child_rank = static_cast<RankType>(static_cast<int>(rank_) + 1);
           child_suits = {suit_};
@@ -497,6 +496,7 @@ std::vector<Card> Card::LegalChildren(RankType foundation_rank) const {
           // Should not run
           return {};
         }
+        break;
       }
       default: {
         // This catches all cards_ that aren't located in a tableau or
@@ -633,6 +633,7 @@ std::vector<Card> Pile::Sources() const {
       } else {
         return {};
       }
+      break;
     }
     case LocationType::kWaste: {
       if (!cards_.empty()) {
@@ -649,6 +650,7 @@ std::vector<Card> Pile::Sources() const {
       } else {
         return {};
       }
+      break;
     }
     default: {
       SpielFatalError("Pile::Sources() called with unsupported type_");
@@ -1345,22 +1347,6 @@ std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
     return LegalChanceOutcomes();
   } else {
     std::vector<Action> legal_actions;
-    std::cerr << std::boolalpha; // TODO: remove
-    std::cerr << "is reversible: " << is_reversible_ << std::endl; // TODO; remove
-    std::cerr << "is known foundation: " << is_known_foundation_ << std::endl; // TODO; remove
-
-    // test, begins here. TODO: REMOVE
-    std::vector<Card> sources = Sources();
-    for (auto& source: sources) {
-      std::cerr << "source: " << source.ToString() << std::endl; // TODO: remove
-      if (source.LegalChildren(foundation_rank_).size() == 0) {
-        std::cerr << "no legal children for source:" << source.ToString() << std::endl; // TODO: remove
-      }
-      for (auto& child: source.LegalChildren(foundation_rank_)) {
-        std::cerr << "child: " << child.ToString() << std::endl; // TODO: remove
-      }
-    }
-    // test, ends here, TODO: remove
 
     if (is_reversible_) {
       // If the state is reversible, we need to check each move to see if it is
@@ -1672,6 +1658,7 @@ bool AgnesSorelState::IsReversible(const Card& source,
           return false;
         }
       }
+      break;
     }
     default: {
       // Returns false if the source card is not in the waste, foundations,
