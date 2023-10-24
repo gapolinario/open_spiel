@@ -913,7 +913,7 @@ Move::Move(Action action) {
     // Handles card to empty foundation
     source_rank = (action-1)%13+1;
     source_suit = ((action-1)-(source_rank-1))/13+1;
-    target_rank = 14;
+    target_rank = 0;
     target_suit = source_suit;
   } else if (action >= 53 && action <= 100) {
     // Handles card (not A) to not empty foundation
@@ -1012,11 +1012,12 @@ Action Move::ActionId() const {
     // Handles card to empty tableau
     base = 209+offset;
     return base + (source_suit - 1) * 13 + (source_rank - 1);
-  } else if (target_rank == 14 && target_suit != 0 && target_suit != 5 &&
-             source_rank != 14 && source_rank != 0 && source_suit != 0 &&
+  } else if (target_rank == 0 && target_suit != 0 && target_suit != 5 &&
+             source_rank != 0 && source_rank != 14 && source_suit != 0 &&
              source_suit != 5) {
     // Handles card to empty foundation
-    base = 1 + offset + (source_suit-1) * 13 + (source_rank-1);
+    base = 1 + offset;
+    return base + (source_suit - 1) * 13 + (source_rank - 1);
   }
 
   // Handle all cases without hidden or unknown cards
@@ -1053,12 +1054,22 @@ Action Move::ActionId() const {
     } else {
       std::cerr << "invalid move. target: " << target_.ToString() <<
                    " source: " << source_.ToString() << std::endl; // TODO: remove
+      std::cerr << "invalid move. target: " << static_cast<int>(target_.GetRank())
+                << " " << static_cast<int>(target_.GetSuit())
+                << " source: " << static_cast<int>(source_.GetRank())
+                << " " << static_cast<int>(source_.GetSuit())
+                << std::endl; // TODO: remove
       SpielFatalError("move not found");
       return -999; // see solitaire.cc line 894
     }
   } else {
     std::cerr << "invalid move. target: " << target_.ToString() <<
                    " source: " << source_.ToString() << std::endl; // TODO: remove
+    std::cerr << "invalid move. target: " << static_cast<int>(target_.GetRank())
+                << " " << static_cast<int>(target_.GetSuit())
+                << " source: " << static_cast<int>(source_.GetRank())
+                << " " << static_cast<int>(source_.GetSuit())
+                << std::endl; // TODO: remove
     SpielFatalError("move not found");
     return -999; // see solitaire.cc line 894
   }
@@ -1335,8 +1346,8 @@ void AgnesSorelState::DoApplyAction(Action action) {
     }
     // deal 7 cards from waste to tableau
     if ( cards.size() >= 7 ) {
-      for (int i=0; i<7; i++) {
-        Move deal = Move(261);
+      for (int i=1; i<=7; i++) {
+        Move deal = Move(261); // TODO: fix this number
         is_reversible_ = false;
         previous_states_.clear();
       }
