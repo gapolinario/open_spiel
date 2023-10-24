@@ -1201,6 +1201,11 @@ std::string AgnesSorelState::ActionToString(Player player,
   } else if (action_id >= kMoveStart && action_id <= kMoveEnd) {
     auto move = Move(action_id);
     return move.ToString(is_colored_);
+  } else if (action_id == kDeal) {
+    // TODO: fix
+    std::string result;
+    absl::StrAppend(&result, "Deal/Reveal from waste");
+    return result;
   } else {
     return "Missing Action";
   }
