@@ -1383,6 +1383,9 @@ std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
       }
     }
 
+    if (!waste_.GetIsEmpty() && waste_.GetCards().size() > 2) {
+      legal_actions.push_back(kDeal);
+    }
     if (!legal_actions.empty()) {
       std::sort(legal_actions.begin(), legal_actions.end());
     } else {
