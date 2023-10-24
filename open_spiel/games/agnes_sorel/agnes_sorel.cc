@@ -91,11 +91,12 @@ inline constexpr int kRevealEnd = 52;
 // reveal actions before it. See `NumDistinctActions()` in agnes_sorel.cc.
 // 261-312 are moves from waste (hidden) to end of tableau
 inline constexpr int kMoveStart = 53;
-inline constexpr int kMoveEnd = 312;
+inline constexpr int kMoveEnd = 365;
 
 // A single action that the player may take. This deals hidden cards
 // from the waste to the tableau
-inline constexpr int kDeal = 313;
+// Last valid action = NumDistinctActions() - 1
+inline constexpr int kDeal = 366;
 
 // Indices for special cards_
 // inline constexpr int kHiddenCard = 99;
@@ -908,55 +909,61 @@ Move::Move(Action action) {
   // The numbers used in the cases below are just used to divide
   // action ids into groups
 
-  if (action >= 1 && action <= 48) {
-    // Handles card (not A) to foundation
-    source_rank = (action-1)%12+2;
-    source_suit = ((action-1)-(source_rank-2))/12+1;
-    target_rank = source_rank-1;
-    target_suit = source_suit;
-  } else if (action >= 49 && action <= 52) {
-    // Handles A on top of K in foundation
-    source_rank = 1;
-    source_suit = action-48;
-    target_rank = 13;
+  if (action >= 1 && action <= 52) {
+    // Handles card to empty foundation
+    source_rank = (action-1)%13+1;
+    source_suit = ((action-1)-(source_rank-1))/13+1;
+    target_rank = 14;
     target_suit = source_suit;
   } else if (action >= 53 && action <= 100) {
-    // Handles card (not K) to tableau (same suit)
-    source_rank = (action-53)%12+1;
-    source_suit = ((action-53)-(source_rank-1))/12+1;
-    target_rank = source_rank+1;
+    // Handles card (not A) to not empty foundation
+    source_rank = (action-53)%12+2;
+    source_suit = ((action-53)-(source_rank-2))/12+1;
+    target_rank = source_rank-1;
     target_suit = source_suit;
   } else if (action >= 101 && action <= 104) {
-    // Handles K to A on tableau (same suit)
-    source_rank = 13;
-    source_suit = (action-101)/4+1;
-    target_rank = 1;
+    // Handles A on top of K in foundation
+    source_rank = 1;
+    source_suit = action-(101-1);
+    target_rank = 13;
     target_suit = source_suit;
   } else if (action >= 105 && action <= 152) {
-    // Handles card (not K) to tableau (opposite suit)
+    // Handles card (not K) to tableau (same suit)
     source_rank = (action-105)%12+1;
     source_suit = ((action-105)-(source_rank-1))/12+1;
     target_rank = source_rank+1;
-    target_suit = (source_suit+1)%4+1;
+    target_suit = source_suit;
   } else if (action >= 153 && action <= 156) {
-    // Handles K to tableau (opposite suit)
+    // Handles K to A on tableau (same suit)
     source_rank = 13;
     source_suit = (action-153)/4+1;
+    target_rank = 1;
+    target_suit = source_suit;
+  } else if (action >= 157 && action <= 204) {
+    // Handles card (not K) to tableau (opposite suit)
+    source_rank = (action-157)%12+1;
+    source_suit = ((action-157)-(source_rank-1))/12+1;
     target_rank = source_rank+1;
     target_suit = (source_suit+1)%4+1;
-  } else if (action >= 157 && action <= 208) {
+  } else if (action >= 205 && action <= 208) {
+    // Handles K to tableau (opposite suit)
+    source_rank = 13;
+    source_suit = (action-205)/4+1;
+    target_rank = source_rank+1;
+    target_suit = (source_suit+1)%4+1;
+    else if (action >= 209 && action <= 260) {
     // Handles card to empty tableau
     target_rank = 0;
     target_suit = 0;
-    source_rank = (action-157)%13+1;
-    source_suit = ((action-157)-(source_rank-1))/13+1;
-  } else if (action >= 209 && action <= 260) {
+    source_rank = (action-209)%13+1;
+    source_suit = ((action-209)-(source_rank-1))/13+1;
+  } else if (action >= 261 && action <= 312) {
     // Handles hidden card to tableau
-    target_rank = (action-209)%13+1;
-    target_suit = ((action-209)-(target_rank-1))/13+1;
+    target_rank = (action-261)%13+1;
+    target_suit = ((action-261)-(target_rank-1))/13+1;
     source_rank = 14;
     source_suit = 5;
-  } else if (action == 261) {
+  } else if (action == 313) {
     // Handles hidden card to empty tableau
     target_rank = 0;
     target_suit = 0;
@@ -1694,7 +1701,7 @@ AgnesSorelGame::AgnesSorelGame(const GameParameters& params)
 int AgnesSorelGame::NumDistinctActions() const {
   /* 52 Reveal Moves (one for each ordinary card)
    * 52 Card to empty Foundation moves
-   * 52 Foundation Moves (one for every ordinary card)
+   * 52 Card to Card on Foundation Moves
    * 104 Tableau Moves (two for every ordinary card)
    * e.g. 4h can be moved on top of 5h or 5d
    * 52 Card to Empty Tableau moves

@@ -79,10 +79,10 @@ void TestMoveActionId() {
   // Checks that the action id of a move can be converted back into the original
   // move
   for (const auto &move : valid_moves) {
-    //std::cout << move.ToString() << " == " << Move(move.ActionId()).ToString() // TODO: uncomment
-    //          << std::endl; // TODO: uncomment
-    std::cout << static_cast<int>(move.ActionId()) << "; " << move.ToString() << " == " << Move(move.ActionId()).ToString()
-              << std::endl; // TODO: uncomment
+    std::cout << static_cast<int>(move.ActionId()) << "; " << move.ToString()
+              << std::endl; // TODO: remove
+    std::cout << move.ToString() << " == " << Move(move.ActionId()).ToString()
+              << std::endl;
     SPIEL_CHECK_EQ(move.ToString(), Move(move.ActionId()).ToString());
   }
 }
