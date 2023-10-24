@@ -922,7 +922,7 @@ Move::Move(Action action) {
     target_suit = source_suit;
   } else if (action >= 53 && action <= 100) {
     // Handles card (not K) to tableau (same suit)
-    source_rank = (action-1)%12+1;
+    source_rank = (action-53)%12+1;
     source_suit = ((action-53)-(source_rank-1))/12+1;
     target_rank = source_rank+1;
     target_suit = source_suit;
@@ -1039,10 +1039,12 @@ Action Move::ActionId() const {
       base = 1+offset;
       return base + (source_suit-1) * 12 + (source_rank-2);
     } else {
-      SpielFatalError("move not found");
+      //SpielFatalError("move not found");
+      return -999; // see solitaire.cc line 894
     }
   } else {
-    SpielFatalError("move not found");
+    //SpielFatalError("move not found");
+    return -999; // see solitaire.cc line 894
   }
 
 }
@@ -1323,12 +1325,6 @@ void AgnesSorelState::DoApplyAction(Action action) {
   if (current_depth_ >= depth_limit_) {
     is_finished_ = true;
   }
-
-  // TODO: REMOVE, begin here
-  for (auto const& it: card_map_) {
-    std::cout << it.first.ToString() << " ;; " << static_cast<int>(it.second) << std::endl;
-  }
-  // TODO: REMOVE, end here
 }
 
 std::vector<double> AgnesSorelState::Returns() const {
@@ -1357,7 +1353,9 @@ std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
       for (const auto& move : CandidateMoves()) {
         if (IsReversible(move.GetSource(), GetPile(move.GetSource()),
                         move.GetTarget(),GetPile(move.GetTarget()))) {
+          std::cerr << "test 1" << std::endl; // TODO: REMOVE
           auto action_id = move.ActionId();
+          std::cerr << "test 2" << std::endl; // TODO: REMOVE
           auto child = Child(action_id);
 
           if (child->CurrentPlayer() == kChancePlayerId) {
@@ -1369,7 +1367,9 @@ std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
             }
           }
         } else {
+          std::cerr << "test 3" << std::endl; // TODO: REMOVE
           legal_actions.push_back(move.ActionId());
+          std::cerr << "test 4" << std::endl; // TODO: REMOVE
         }
       }
     } else {
@@ -1384,6 +1384,12 @@ std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
     } else {
       legal_actions.push_back(kEnd);
     }
+
+    // TODO: remove, begin debugging
+    for (const auto& move: legal_actions) {
+      std::cerr << "a move: " << move << std::endl; 
+    }
+    // TODO: remove, end of debugging
 
     return legal_actions;
   }
@@ -1643,6 +1649,7 @@ bool AgnesSorelState::IsReversible(const Card& source,
         }
       // From card on a not single pile
       } else {
+        // TODO: fix, not always the last card, if source is somewhere else
         auto source_children = source_pile->GetCards().rbegin()[1].LegalChildren();
         // children of second to last card in source pile
         if (std::find(source_children.begin(), source_children.end(),
