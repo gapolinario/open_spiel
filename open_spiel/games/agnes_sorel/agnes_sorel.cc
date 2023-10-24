@@ -951,7 +951,7 @@ Move::Move(Action action) {
     source_suit = (action-205)/4+1;
     target_rank = source_rank+1;
     target_suit = (source_suit+1)%4+1;
-    else if (action >= 209 && action <= 260) {
+  } else if (action >= 209 && action <= 260) {
     // Handles card to empty tableau
     target_rank = 0;
     target_suit = 0;
@@ -1001,17 +1001,22 @@ Action Move::ActionId() const {
   if (target_rank == 0 && target_suit == 0 && source_rank == 14 &&
       source_suit == 5) {
     // Handles hidden card to empty tableau (waste -> tableau)
-    return 261+offset;
+    return 313+offset;
   } else if (source_rank == 14 && source_suit == 5 && target_rank != 0 &&
              target_rank != 14 && target_suit != 0 && target_suit != 5) {
     // Handles hidden card to tableau (waste -> tableau)
-    base = 209+offset;
+    base = 261+offset;
     return base + (target_suit - 1) * 13 + (target_rank - 1);
   } else if (target_rank == 0 && target_suit == 0 && source_rank != 0 &&
              source_rank != 14 && source_suit != 0 && source_suit != 5) {
     // Handles card to empty tableau
-    base = 157+offset;
+    base = 209+offset;
     return base + (source_suit - 1) * 13 + (source_rank - 1);
+  } else if (target_rank == 14 && target_suit != 0 && target_suit != 5 &&
+             source_rank != 14 && source_rank != 0 && source_suit != 0 &&
+             source_suit != 5) {
+    // Handles card to empty foundation
+    base = 1 + offset + (source_suit-1) * 13 + (source_rank-1);
   }
 
   // Handle all cases without hidden or unknown cards
@@ -1021,29 +1026,29 @@ Action Move::ActionId() const {
 
     if (source_rank == 13 && target_rank == 1 && abs(target_suit - source_suit)%4 == 2) {
       // Handles K to A on tableau (opposite suit)
-      base = 153+offset;
+      base = 205+offset;
       return base + (source_suit - 1);
     } else if (target_rank - source_rank == 1 && abs(target_suit - source_suit)%4 == 2) {
       // Handles card (not K) to tableau (opposite suit)
-      base = 105+offset;
+      base = 157+offset;
       return base + (source_suit-1) * 12 + (source_rank-1);
     } else if (target_rank == 1 && source_rank == 13 &&
               target_suit == source_suit) {
       // Handles K to A on tableau (same suit)
-      base = 101+offset;
+      base = 153+offset;
       return base + (source_suit - 1);
     } else if (target_rank - source_rank == 1 && target_suit == source_suit) {
       // Handles card (not K) to tableau (same suit)
-      base = 53+offset;
+      base = 105+offset;
       return base + (source_suit-1) * 12 + (source_rank-1);
     } else if (source_rank == 1 && target_rank == 13 &&
               target_suit == source_suit) {
       // Handles A on top of K in foundation
-      base = 49+offset;
+      base = 101+offset;
       return base + (source_suit - 1);
     } else if (target_suit == source_suit && source_rank - target_rank == 1) {
       // Handles card (not A) to foundation
-      base = 1+offset;
+      base = 53+offset;
       return base + (source_suit-1) * 12 + (source_rank-2);
     } else {
       std::cerr << "invalid move. target: " << target_.ToString() <<
