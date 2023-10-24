@@ -993,18 +993,18 @@ Action Move::ActionId() const {
   // Handle all cases with hidden or none cards
   if (target_rank == 0 && target_suit == 0 && source_rank == 14 &&
       source_suit == 5) {
-    // Handles hidden card to empty tableau
+    // Handles hidden card to empty tableau (waste -> tableau)
     return 261+offset;
   } else if (source_rank == 14 && source_suit == 5 && target_rank != 0 &&
              target_rank != 14 && target_suit != 0 && target_suit != 5) {
-      // Handles hidden card to tableau
-      base = 209+offset;
-      return base + (target_suit - 1) * 13 + (target_rank - 1);
+    // Handles hidden card to tableau (waste -> tableau)
+    base = 209+offset;
+    return base + (target_suit - 1) * 13 + (target_rank - 1);
   } else if (target_rank == 0 && target_suit == 0 && source_rank != 0 &&
              source_rank != 14 && source_suit != 0 && source_suit != 5) {
-      // Handles card to empty tableau
-      base = 157+offset;
-      return base + (source_suit - 1) * 13 + (source_rank - 1);
+    // Handles card to empty tableau
+    base = 157+offset;
+    return base + (source_suit - 1) * 13 + (source_rank - 1);
   }
 
   // Handle all cases without hidden or unknown cards
@@ -1039,11 +1039,15 @@ Action Move::ActionId() const {
       base = 1+offset;
       return base + (source_suit-1) * 12 + (source_rank-2);
     } else {
-      //SpielFatalError("move not found");
+      std::cerr << "invalid move. target: " << target_.ToString() <<
+                   " source: " << source_.ToString() << std::endl; // TODO: remove
+      SpielFatalError("move not found");
       return -999; // see solitaire.cc line 894
     }
   } else {
-    //SpielFatalError("move not found");
+    std::cerr << "invalid move. target: " << target_.ToString() <<
+                   " source: " << source_.ToString() << std::endl; // TODO: remove
+    SpielFatalError("move not found");
     return -999; // see solitaire.cc line 894
   }
 
@@ -1686,6 +1690,7 @@ AgnesSorelGame::AgnesSorelGame(const GameParameters& params)
 
 int AgnesSorelGame::NumDistinctActions() const {
   /* 52 Reveal Moves (one for each ordinary card)
+   * 52 Card to empty Foundation moves
    * 52 Foundation Moves (one for every ordinary card)
    * 104 Tableau Moves (two for every ordinary card)
    * e.g. 4h can be moved on top of 5h or 5d
@@ -1695,8 +1700,8 @@ int AgnesSorelGame::NumDistinctActions() const {
    *  1 Hidden card from waste to empty tableau
    *  1 Deal new row move
    *  1 End Game move
-   * Total: 314 = 52 Reveal + 208 Move + 52 Deal + 1 Deal to empty tableau + 1 Player deal + 1 End */
-  return 315;
+   * Total: 367 = 52 Reveal + 260 Move + 52 Deal + 1 Deal to empty tableau + 1 Player deal + 1 End */
+  return 367;
 }
 
 int AgnesSorelGame::MaxChanceOutcomes() const { return kRevealEnd + 1; }
