@@ -1052,24 +1052,10 @@ Action Move::ActionId() const {
       base = 53+offset;
       return base + (source_suit-1) * 12 + (source_rank-2);
     } else {
-      std::cerr << "invalid move. target: " << target_.ToString() <<
-                   " source: " << source_.ToString() << std::endl; // TODO: remove
-      std::cerr << "invalid move. target: " << static_cast<int>(target_.GetRank())
-                << " " << static_cast<int>(target_.GetSuit())
-                << " source: " << static_cast<int>(source_.GetRank())
-                << " " << static_cast<int>(source_.GetSuit())
-                << std::endl; // TODO: remove
       SpielFatalError("move not found");
       return -999; // see solitaire.cc line 894
     }
   } else {
-    std::cerr << "invalid move. target: " << target_.ToString() <<
-                   " source: " << source_.ToString() << std::endl; // TODO: remove
-    std::cerr << "invalid move. target: " << static_cast<int>(target_.GetRank())
-                << " " << static_cast<int>(target_.GetSuit())
-                << " source: " << static_cast<int>(source_.GetRank())
-                << " " << static_cast<int>(source_.GetSuit())
-                << std::endl; // TODO: remove
     SpielFatalError("move not found");
     return -999; // see solitaire.cc line 894
   }
@@ -1213,7 +1199,6 @@ std::string AgnesSorelState::ActionToString(Player player,
     auto move = Move(action_id);
     return move.ToString(is_colored_);
   } else if (action_id == kDeal) {
-    // TODO: fix
     std::string result;
     absl::StrAppend(&result, "Deal/Reveal from waste");
     return result;
@@ -1340,17 +1325,30 @@ void AgnesSorelState::DoApplyAction(Action action) {
     MoveCards(selected_move);
     current_returns_ += current_rewards_;
   } else if (action == kDeal) {
-    auto cards = waste_.GetCards();
     if (waste_.GetIsEmpty()) {
       SpielFatalError("kDeal is not a valid move when waste is empty");
     }
-    // deal 7 cards from waste to tableau
-    if ( cards.size() >= 7 ) {
+    auto waste_cards  = waste_.GetCards();
+    //auto *source_pile = kIntToPile.at(0); // waste
+    if ( waste_cards.size() >= 7 ) {
+      // deal 7 cards from waste to tableau
       for (int i=1; i<=7; i++) {
-        Move deal = Move(261); // TODO: fix this number
-        is_reversible_ = false;
-        previous_states_.clear();
+        // TODO: fix this
+        auto* target_pile = &Tableau(kIntToPile.at(i));
+        std::vector<Card> split_cards = waste_.Split(waste_.GetLastCard());
+        for (auto& card : split_cards) {
+          card_map_.insert_or_assign(card, target_pile->GetID());
+          target_pile->Extend({card});
+        }
+        /*Card source(true,SuitType::kHidden,RankType::kHidden,LocationType::kWaste);
+        Card target = target_tableau.GetLastCard();
+        Move selected_move = Move(target,source);
+        MoveCards(selected_move);*/  
       }
+      is_reversible_ = false;
+      previous_states_.clear();
+    } else {
+      // reveal cards on waste, or deal to tableau?
     }
   }
   ++current_depth_;
@@ -1419,13 +1417,6 @@ std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
     } else {
       legal_actions.push_back(kEnd);
     }
-
-    // TODO: remove, begin debugging
-    for (const auto& move: legal_actions) {
-      std::cerr << "a move: " << move << std::endl; 
-    }
-    // TODO: remove, end of debugging
-
     return legal_actions;
   }
 }
