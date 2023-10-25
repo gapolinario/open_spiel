@@ -1332,18 +1332,12 @@ void AgnesSorelState::DoApplyAction(Action action) {
     //auto *source_pile = kIntToPile.at(0); // waste
     if ( waste_cards.size() >= 7 ) {
       // deal 7 cards from waste to tableau
-      for (int i=1; i<=7; i++) {
-        // TODO: fix this
-        auto* target_pile = &Tableau(kIntToPile.at(i));
+      for (auto& tableau : tableaus_) {
         std::vector<Card> split_cards = waste_.Split(waste_.GetLastCard());
         for (auto& card : split_cards) {
-          card_map_.insert_or_assign(card, target_pile->GetID());
-          target_pile->Extend({card});
+          card_map_.insert_or_assign(card, tableau.GetID());
+          tableau.Extend({card});
         }
-        /*Card source(true,SuitType::kHidden,RankType::kHidden,LocationType::kWaste);
-        Card target = target_tableau.GetLastCard();
-        Move selected_move = Move(target,source);
-        MoveCards(selected_move);*/  
       }
       is_reversible_ = false;
       previous_states_.clear();
