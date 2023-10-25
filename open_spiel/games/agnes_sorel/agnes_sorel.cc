@@ -1148,10 +1148,6 @@ bool AgnesSorelState::IsChanceNode() const {
   if (!is_known_foundation_) {
     return true;
   }
-  // If there are only two cards in the waste, they are revealed
-  if (waste_.GetCards().size() == 2) {
-    return true;
-  }
   return false;
 }
 
@@ -1329,7 +1325,6 @@ void AgnesSorelState::DoApplyAction(Action action) {
       SpielFatalError("kDeal is not a valid move when waste is empty");
     }
     auto waste_cards  = waste_.GetCards();
-    //auto *source_pile = kIntToPile.at(0); // waste
     if ( waste_cards.size() >= 7 ) {
       // deal 7 cards from waste to tableau
       for (auto& tableau : tableaus_) {
@@ -1342,7 +1337,17 @@ void AgnesSorelState::DoApplyAction(Action action) {
       is_reversible_ = false;
       previous_states_.clear();
     } else {
-      // reveal cards on waste, or deal to tableau?
+      // deal 2 cards from waste to tableau
+      int waste_size = waste_cards.size();
+      for (auto it = tableaus_.begin(); it != tableaus_.end() &&
+          std::distance(tableaus_.begin(), it) < waste_size; ++it) {
+        auto& tableau = *it;
+        std::vector<Card> split_cards = waste_.Split(waste_.GetLastCard());
+        for (auto& card : split_cards) {
+          card_map_.insert_or_assign(card, tableau.GetID());
+          tableau.Extend({card});
+        }
+      }
     }
   }
   ++current_depth_;
@@ -1403,7 +1408,7 @@ std::vector<Action> AgnesSorelState::LegalActions() const { // TODO: fix
       }
     }
 
-    if (!waste_.GetIsEmpty() && waste_.GetCards().size() > 2) {
+    if (!waste_.GetIsEmpty()) {
       legal_actions.push_back(kDeal);
     }
     if (!legal_actions.empty()) {
